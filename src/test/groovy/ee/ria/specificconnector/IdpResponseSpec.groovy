@@ -1,6 +1,5 @@
 package ee.ria.specificconnector
 
-import ee.ria.specificconnector.tara.MobileId
 import io.qameta.allure.Feature
 import io.restassured.filter.cookie.CookieFilter
 import io.restassured.response.Response

@@ -1,6 +1,5 @@
 package ee.ria.specificconnector
 
-
 class MetadataSpec extends SpecificConnectorSpecification {
     Flow flow = new Flow(props)
 

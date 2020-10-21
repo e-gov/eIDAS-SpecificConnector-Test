@@ -17,7 +17,7 @@ class Requests {
                 .relaxedHTTPSValidation()
                 .filter(new AllureRestAssured())
                 .when()
-                .get(flow.specificProxyService.fullMetadataUrl)
+                .get(flow.connector.fullMetadataUrl)
                 .then()
                 .statusCode(200)
                 .extract().body().asString()
@@ -139,6 +139,22 @@ class Requests {
                         .when()
                         .redirects().follow(false)
                         .get(url)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("First page")
+    static Response startingPoint(Flow flow, String country) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .queryParam("Country", country)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .redirects().follow(false)
+                        .get(flow.specificProxyService.fullConsentUrl)
                         .then()
                         .extract().response()
         return response

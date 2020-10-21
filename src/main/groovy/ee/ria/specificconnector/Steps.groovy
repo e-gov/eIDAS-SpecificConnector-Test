@@ -1,6 +1,5 @@
 package ee.ria.specificconnector
 
-import ee.ria.specificconnector.tara.MobileId
 import io.qameta.allure.Allure
 import io.qameta.allure.Step
 import io.restassured.response.Response
@@ -96,12 +95,6 @@ class Steps {
                 .getHeader("location")
         flow.specificProxyService.setTaraLoginPageUrl(location)
         return Requests.followRedirect(flow, location)
-    }
-
-    @Step("Authenticate with MID and follow redirects to consent")
-    static Response authenticateWithMidAndFollowRedirects(Flow flow, Response taraLoginPageResponse) {
-        Response response = MobileId.authenticateWithMobileId(flow, taraLoginPageResponse, "00000766", "60001019906", 7000)
-        return Steps.followRedirect(flow, response)
     }
 
     @Step("User consents with authentication")
