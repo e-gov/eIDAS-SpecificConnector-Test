@@ -51,13 +51,13 @@ class Requests {
     }
 
     @Step("Open authentication page")
-    static Response getAuthenticationPage(Flow flow, String requestType, String samlRequest) {
+    static Response getAuthenticationPage(Flow flow, String requestType, String samlRequest, String additionalParam = "salt", String additionalParamValue = "lqx") {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
                         .param("SAMLRequest", samlRequest)
-                //     .param("RelayState", "")
+                        .param(additionalParam, additionalParamValue)
                         .param("country", "CA")
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
@@ -94,22 +94,6 @@ class Requests {
                 .get(location)
                 .then()
                 .extract().response()
-    }
-
-
-    @Step("Return to service provider without authentication")
-    static Response backToServiceProvider(Flow flow, String url) {
-        Response response =
-                given()
-                        .filter(flow.cookieFilter)
-                        .filter(new AllureRestAssured())
-                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
-                        .when()
-                        .redirects().follow(false)
-                        .get(url)
-                        .then()
-                        .extract().response()
-        return response
     }
 
     @Step("Colleague Request")

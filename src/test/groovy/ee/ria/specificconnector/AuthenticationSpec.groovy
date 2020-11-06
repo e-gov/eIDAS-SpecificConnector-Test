@@ -9,6 +9,7 @@ import spock.lang.Unroll
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertThat
+import org.apache.commons.lang.RandomStringUtils
 
 
 class AuthenticationSpec extends EEConnectorSpecification {
@@ -81,8 +82,9 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with get"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String relayState = "ABC-" + RandomStringUtils.random(76, true, true)
 
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
         String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
 
@@ -121,6 +123,53 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", response10.statusCode(), 302)
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(response10, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_ENDPOINT")
+    def "request authentication with multiple instances"() {
+        expect:
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_POST, "1234567", "SAMLRequest", "78901234")
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), 400)
+        assertEquals("Correct content type", response.getContentType(), "application/json")
+        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("Duplicate request parameter 'SAMLRequest'"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REQUEST_SP_CHECK")
+    def "request authentication with invalid service provider"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithInvalidIssuer(flow, "eidas-eeserviceprovider")
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), 400)
+        assertEquals("Correct content type", response.getContentType(), "application/json")
+        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("SAML request is invalid - issuer not allowed"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REQUEST_ATTRIBUTES_CHECK")
+    def "request authentication with missing attributes"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithoutExtensions(flow, "eidas-eeserviceprovider")
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), 400)
+        assertEquals("Correct content type", response.getContentType(), "application/json")
+        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("SAML request is invalid - no requested attributes"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REQUEST_ATTRIBUTES_CHECK")
+    def "request authentication with unsupported attribute"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithUnsupportedAttribute(flow, "eidas-eeserviceprovider")
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), 400)
+        assertEquals("Correct content type", response.getContentType(), "application/json")
+        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("SAML request is invalid - unsupported requested attributes"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
     }
 
 }

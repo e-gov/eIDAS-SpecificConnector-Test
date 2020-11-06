@@ -85,6 +85,9 @@ class DomesticSpService {
     Credential signatureCredential
     Credential encryptionCredential
 
+    @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
+    @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"
+
     DomesticSpService(Properties properties) {
         this.host = properties."ee-spservice.host"
         this.port = properties."ee-spservice.port"

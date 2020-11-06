@@ -17,9 +17,9 @@ class Steps {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
                 providerName,
-                "${flow.domesticConnector.protocol}://${flow.domesticConnector.host}:${flow.domesticConnector.port}${flow.domesticConnector.authenticationRequestUrl}",
-                "${flow.domesticSpService.protocol}://${flow.domesticSpService.host}:${flow.domesticSpService.port}${flow.domesticSpService.returnUrl}",
-                "${flow.domesticSpService.protocol}://${flow.domesticSpService.host}:${flow.domesticSpService.port}${flow.domesticSpService.metadataUrl}",
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
                 loa, comparison, nameIdFormat, spType)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
@@ -27,6 +27,56 @@ class Steps {
         SamlSignatureUtils.validateSamlReqSignature(stringResponse)
         return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
     }
+
+    @Step("Create Natural Person authentication request with invalid issuer metadata url")
+    static String getAuthnRequestWithInvalidIssuer(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
+                providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                "https://example.net/EidasNode/ConnectorMetadata",
+                loa, comparison, nameIdFormat, spType)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+
+        SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
+    @Step("Create Natural Person authentication request without extensions")
+    static String getAuthnRequestWithoutExtensions(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParamsWithoutExtensions(flow.domesticSpService.signatureCredential,
+                providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
+                loa, comparison, nameIdFormat, spType)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+
+        SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
+    @Step("Create Natural Person authentication request with unsupported attribute")
+    static String getAuthnRequestWithUnsupportedAttribute(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParamsWithUnsupportedAttribute(flow.domesticSpService.signatureCredential,
+                providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
+                loa, comparison, nameIdFormat, spType)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+
+        SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
+
 
     @Step("Follow redirect")
     static Response followRedirect(Flow flow, Response response) {

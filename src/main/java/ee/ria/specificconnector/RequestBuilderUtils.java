@@ -71,6 +71,64 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
+    public AuthnRequest buildAuthnRequestParamsWithoutExtensions(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
+        try {
+            Signature signature = prepareSignature(signCredential);
+            DateTime timeNow = new DateTime();
+            AuthnRequest authnRequest = OpenSAMLUtils.buildSAMLObject(AuthnRequest.class);
+            authnRequest.setIssueInstant(timeNow);
+            authnRequest.setForceAuthn(true);
+            authnRequest.setIsPassive(false);
+            authnRequest.setProviderName(providerName);
+            authnRequest.setDestination(destination);
+            authnRequest.setProtocolBinding(SAMLConstants.SAML2_POST_BINDING_URI);
+            authnRequest.setAssertionConsumerServiceURL(consumerServiceUrl);
+            authnRequest.setID(OpenSAMLUtils.generateSecureRandomId());
+            authnRequest.setIssuer(buildIssuer(issuerValue));
+            if (nameId != null && !nameId.isBlank()) {
+                authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
+            }
+            authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
+            authnRequest.setExtensions(buildEmptyExtensions(spType));
+            authnRequest.setSignature(signature);
+            XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
+            Signer.signObject(signature);
+
+            return authnRequest;
+        } catch (Exception e) {
+            throw new RuntimeException("SAML error:" + e.getMessage(), e);
+        }
+    }
+
+    public AuthnRequest buildAuthnRequestParamsWithUnsupportedAttribute(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
+        try {
+            Signature signature = prepareSignature(signCredential);
+            DateTime timeNow = new DateTime();
+            AuthnRequest authnRequest = OpenSAMLUtils.buildSAMLObject(AuthnRequest.class);
+            authnRequest.setIssueInstant(timeNow);
+            authnRequest.setForceAuthn(true);
+            authnRequest.setIsPassive(false);
+            authnRequest.setProviderName(providerName);
+            authnRequest.setDestination(destination);
+            authnRequest.setProtocolBinding(SAMLConstants.SAML2_POST_BINDING_URI);
+            authnRequest.setAssertionConsumerServiceURL(consumerServiceUrl);
+            authnRequest.setID(OpenSAMLUtils.generateSecureRandomId());
+            authnRequest.setIssuer(buildIssuer(issuerValue));
+            if (nameId != null && !nameId.isBlank()) {
+                authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
+            }
+            authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
+            authnRequest.setExtensions(buildExtensionsWithUnsupportedAttribute(spType));
+            authnRequest.setSignature(signature);
+            XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
+            Signer.signObject(signature);
+
+            return authnRequest;
+        } catch (Exception e) {
+            throw new RuntimeException("SAML error:" + e.getMessage(), e);
+        }
+    }
+
     private Extensions buildExtensions(String spTypeExtension) {
         Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
 
@@ -87,6 +145,32 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
 
         extensions.getUnknownXMLObjects().add(requestedAttributes);
 
+        return extensions;
+    }
+
+    private Extensions buildEmptyExtensions(String spTypeExtension) {
+        Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
+
+        XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
+        spType.setTextContent(spTypeExtension);
+        extensions.getUnknownXMLObjects().add(spType);
+
+        XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
+        extensions.getUnknownXMLObjects().add(requestedAttributes);
+        return extensions;
+    }
+
+    private Extensions buildExtensionsWithUnsupportedAttribute(String spTypeExtension) {
+        Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
+
+        XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
+        spType.setTextContent(spTypeExtension);
+        extensions.getUnknownXMLObjects().add(spType);
+
+        XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
+
+        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("RepresentativePersonIdentifier", "http://eidas.europa.eu/attributes/naturalperson/representative/PersonIdentifier", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
+        extensions.getUnknownXMLObjects().add(requestedAttributes);
         return extensions;
     }
 
