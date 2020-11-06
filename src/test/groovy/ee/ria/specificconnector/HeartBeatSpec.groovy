@@ -7,13 +7,11 @@ import org.hamcrest.Matchers
 import spock.lang.Unroll
 
 
-class HeartBeatSpec extends SpecificConnectorSpecification {
+class HeartBeatSpec extends EEConnectorSpecification {
 
     Flow flow = new Flow(props)
 
     def setup() {
-        flow.connector.signatureCredential = signatureCredential
-        flow.connector.encryptionCredential = encryptionCredential
         flow.cookieFilter = new CookieFilter()
     }
 

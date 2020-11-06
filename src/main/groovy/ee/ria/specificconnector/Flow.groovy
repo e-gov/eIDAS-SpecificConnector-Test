@@ -1,78 +1,111 @@
 package ee.ria.specificconnector
 
 import groovy.transform.Canonical
-import io.restassured.config.RestAssuredConfig
 import io.restassured.filter.cookie.CookieFilter
 import org.opensaml.security.credential.Credential
 
 @Canonical
 class Flow {
-    RestAssuredConfig sslConfig
     Properties properties
-    SpecificProxyService specificProxyService
-    Connector connector
+    ForeignProxyService foreignProxyService
+    DomesticSpService domesticSpService
+    DomesticConnector domesticConnector
+    ForeignIdpProvider foreignIdpProvider
     CookieFilter cookieFilter
-    String endUser=""
 
     Flow(Properties properties) {
         this.properties = properties
-        this.specificProxyService = new SpecificProxyService(properties)
-        this.connector = new Connector(properties)
+        this.foreignProxyService = new ForeignProxyService(properties)
+        this.domesticConnector = new DomesticConnector(properties)
+        this.domesticSpService = new DomesticSpService(properties)
+        this.foreignIdpProvider = new ForeignIdpProvider(properties)
     }
 }
 
 @Canonical
-class SpecificProxyService {
+class ForeignProxyService {
     String host
     String port
     String protocol
-    String metadataUrl
+    String callbackUrl
     String authenticationRequestUrl
     String consentUrl
-    String taraLoginPageUrl
     String heartbeatUrl
-    // @formatter:off
-    @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
-    @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
+
+    @Lazy fullCallbackUrl = "${protocol}://${host}:${port}${callbackUrl}"
     @Lazy fullConsentUrl = "${protocol}://${host}:${port}${consentUrl}"
-    @Lazy fullheartbeatUrl = "${protocol}://${host}:${port}${heartbeatUrl}"
 
-    // @formatter:on
-    SpecificProxyService(Properties properties) {
-        this.host = properties."specificproxyservice.host"
-        this.port = properties."specificproxyservice.port"
-        this.protocol = properties."specificproxyservice.protocol"
-        this.metadataUrl = properties."specificproxyservice.metadataUrl"
-        this.authenticationRequestUrl = properties."specificproxyservice.authenticationRequestUrl"
-        this.consentUrl=properties."specificproxyservice.consentUrl"
-        this.heartbeatUrl=properties."specificproxyservice.heartbeatUrl"
+    ForeignProxyService(Properties properties) {
+        this.host = properties."ca-proxyservice.host"
+        this.port = properties."ca-proxyservice.port"
+        this.protocol = properties."ca-proxyservice.protocol"
+        this.callbackUrl = properties."ca-proxyservice.callbackUrl"
+        this.authenticationRequestUrl = properties."ca-proxyservice.authenticationRequestUrl"
+        this.consentUrl = properties."ca-proxyservice.consentUrl"
+        this.heartbeatUrl = properties."ca-proxyservice.heartbeatUrl"
     }
-
 }
 
 @Canonical
-class Connector {
+class DomesticConnector {
     String host
     String port
     String protocol
     String metadataUrl
     String heartbeatUrl
-    String authenticationResponseUrl
+    String eidasResponseUrl
+    String authenticationRequestUrl
+    String eidasColleagueResponseUrl
+
+    @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
+    @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
+    @Lazy fullheartbeatUrl = "${protocol}://${host}:${port}${heartbeatUrl}"
+    @Lazy fullEidasResponseUrl = "${protocol}://${host}:${port}${eidasResponseUrl}"
+    @Lazy fullEidasColleagueResponseUrl = "${protocol}://${host}:${port}${eidasColleagueResponseUrl}"
+
+    DomesticConnector(Properties properties) {
+        this.host = properties."ee-connector.host"
+        this.port = properties."ee-connector.port"
+        this.protocol = properties."ee-connector.protocol"
+        this.metadataUrl = properties."ee-connector.metadataUrl"
+        this.authenticationRequestUrl = properties."ee-connector.authenticationRequestUrl"
+        this.heartbeatUrl = properties."ee-connector.heartbeatUrl"
+        this.eidasResponseUrl = properties."ee-connector.eidasResponseUrl"
+        this.eidasColleagueResponseUrl = properties."ee-connector.eidasColleagueResponseUrl"
+    }
+}
+
+@Canonical
+class DomesticSpService {
+    String host
+    String port
+    String protocol
+    String returnUrl
+    String metadataUrl
     Credential signatureCredential
     Credential encryptionCredential
-    // @formatter:off
-    @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
-    @Lazy fullAuthenticationResponseUrl = "${protocol}://${host}:${port}${authenticationResponseUrl}"
-    @Lazy fullheartbeatUrl = "${protocol}://${host}:${port}${heartbeatUrl}"
 
-    // @formatter:on
-    Connector(Properties properties) {
-        this.host = properties."connector.host"
-        this.port = properties."connector.port"
-        this.protocol = properties."connector.protocol"
-        this.metadataUrl = properties."connector.metadataUrl"
-        this.authenticationResponseUrl = properties."connector.authenticationResponseUrl"
-        this.heartbeatUrl=properties."connector.heartbeatUrl"
+    DomesticSpService(Properties properties) {
+        this.host = properties."ee-spservice.host"
+        this.port = properties."ee-spservice.port"
+        this.protocol = properties."ee-spservice.protocol"
+        this.returnUrl = properties."ee-spservice.returnUrl"
+        this.metadataUrl = properties."ee-spservice.metadataUrl"
     }
+}
 
+@Canonical
+class ForeignIdpProvider {
+    String host
+    String port
+    String protocol
+    String responseUrl
+
+    @Lazy fullResponseUrl = "${protocol}://${host}:${port}${responseUrl}"
+    ForeignIdpProvider(Properties properties) {
+        this.host = properties."idp.host"
+        this.port = properties."idp.port"
+        this.protocol = properties."idp.protocol"
+        this.responseUrl = properties."idp.responseUrl"
+    }
 }

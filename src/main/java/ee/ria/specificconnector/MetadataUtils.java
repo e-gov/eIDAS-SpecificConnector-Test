@@ -2,9 +2,7 @@ package ee.ria.specificconnector;
 
 import io.restassured.path.xml.XmlPath;
 import org.opensaml.saml.common.SignableSAMLObject;
-import org.opensaml.security.credential.Credential;
 import org.opensaml.security.credential.CredentialSupport;
-import org.opensaml.security.x509.BasicX509Credential;
 import org.opensaml.security.x509.X509Credential;
 import org.opensaml.security.x509.X509Support;
 import org.opensaml.xmlsec.signature.support.SignatureException;
@@ -15,16 +13,7 @@ import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 
 public class MetadataUtils {
-    public static Credential getEncryptionCredentialFromMetaData(String body) throws CertificateException {
-        java.security.cert.X509Certificate x509Certificate = getEncryptionCertificate(body);
-        BasicX509Credential encryptionCredential = new BasicX509Credential(x509Certificate);
-        return encryptionCredential;
-    }
-    protected static java.security.cert.X509Certificate getEncryptionCertificate(String body) throws CertificateException {
-        XmlPath metadataXml = new XmlPath(body);
-        java.security.cert.X509Certificate x509 = X509Support.decodeCertificate(metadataXml.getString("**.findAll {it.@use == 'encryption'}.KeyInfo.X509Data.X509Certificate"));
-        return x509;
-    }
+
     protected static void validateMetadataSignature(String body) {
         XmlPath metadataXml = new XmlPath(body);
         try {

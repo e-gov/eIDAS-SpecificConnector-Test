@@ -6,14 +6,12 @@ import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.*;
-import org.opensaml.saml.saml2.core.impl.ResponseBuilder;
 import org.opensaml.security.credential.Credential;
 import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.Signer;
 
 import javax.xml.namespace.QName;
 
-import static org.opensaml.saml.common.SAMLVersion.VERSION_20;
 
 public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
 
@@ -73,33 +71,6 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
-    public AuthnRequest buildAuthnRequestWithOptionalAttributes(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
-        try {
-            Signature signature = prepareSignature(signCredential);
-            DateTime timeNow = new DateTime();
-            AuthnRequest authnRequest = OpenSAMLUtils.buildSAMLObject(AuthnRequest.class);
-            authnRequest.setIssueInstant(timeNow);
-            authnRequest.setForceAuthn(true);
-            authnRequest.setIsPassive(false);
-            authnRequest.setProviderName(providerName);
-            authnRequest.setDestination(destination);
-            authnRequest.setProtocolBinding(SAMLConstants.SAML2_POST_BINDING_URI);
-            authnRequest.setAssertionConsumerServiceURL(consumerServiceUrl);
-            authnRequest.setID(OpenSAMLUtils.generateSecureRandomId());
-            authnRequest.setIssuer(buildIssuer(issuerValue));
-            authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
-            authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
-            authnRequest.setExtensions(buildOptionalExtensions(spType));
-            authnRequest.setSignature(signature);
-            XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
-            Signer.signObject(signature);
-
-            return authnRequest;
-        } catch (Exception e) {
-            throw new RuntimeException("SAML error:" + e.getMessage(), e);
-        }
-    }
-
     private Extensions buildExtensions(String spTypeExtension) {
         Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
 
@@ -113,31 +84,6 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FamilyName", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
         requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FirstName", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
         requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("DateOfBirth", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        //requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("LegalName", "http://eidas.europa.eu/attributes/legalperson/LegalName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-
-        extensions.getUnknownXMLObjects().add(requestedAttributes);
-
-        return extensions;
-    }
-
-    private Extensions buildOptionalExtensions(String spTypeExtension) {
-        Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
-
-        XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
-        spType.setTextContent(spTypeExtension);
-        extensions.getUnknownXMLObjects().add(spType);
-
-        XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
-
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("PersonIdentifier", "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FamilyName", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FirstName", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("DateOfBirth", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("BirthName", "http://eidas.europa.eu/attributes/naturalperson/BirthName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", false));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("PlaceOfBirth", "http://eidas.europa.eu/attributes/naturalperson/PlaceOfBirth", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", false));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("CurrentAddress", "http://eidas.europa.eu/attributes/naturalperson/CurrentAddress", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", false));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("Gender", "http://eidas.europa.eu/attributes/naturalperson/Gender", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", false));
 
         extensions.getUnknownXMLObjects().add(requestedAttributes);
 
@@ -187,17 +133,5 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         nameIDPolicy.setAllowCreate(true);
         nameIDPolicy.setFormat(nameId);
         return nameIDPolicy;
-    }
-
-    protected Response buildResponseForSigningWithoutAssertion (String inResponseId, String recipient, DateTime timeNow, String issuerValue) {
-        Response authnResponse = new ResponseBuilder().buildObject();
-        authnResponse.setIssueInstant(timeNow);
-        authnResponse.setDestination(recipient);
-        authnResponse.setInResponseTo(inResponseId);
-        authnResponse.setVersion(VERSION_20);
-        authnResponse.setID(OpenSAMLUtils.generateSecureRandomId());
-        authnResponse.setStatus(buildSuccessStatus());
-        authnResponse.setIssuer(buildIssuer(issuerValue));
-        return authnResponse;
     }
 }

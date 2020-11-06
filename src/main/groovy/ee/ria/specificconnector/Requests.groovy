@@ -4,24 +4,38 @@ import io.qameta.allure.Step
 import io.qameta.allure.restassured.AllureRestAssured
 import io.restassured.RestAssured
 import io.restassured.response.Response
+import io.restassured.response.ValidatableResponse
 
 import static io.restassured.RestAssured.config
 import static io.restassured.RestAssured.given
 import static io.restassured.config.EncoderConfig.encoderConfig
 
 class Requests {
-    @Step("Get metadata")
+    @Step("Get metadata body")
     static String getMetadataBody(Flow flow) {
         return given()
                 .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8")))
                 .relaxedHTTPSValidation()
                 .filter(new AllureRestAssured())
                 .when()
-                .get(flow.connector.fullMetadataUrl)
+                .get(flow.domesticConnector.fullMetadataUrl)
                 .then()
                 .statusCode(200)
                 .extract().body().asString()
     }
+
+    @Step("Get metadata response")
+    static ValidatableResponse getMetadataResponse(Flow flow) {
+        return given()
+                .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8")))
+                .relaxedHTTPSValidation()
+                .filter(new AllureRestAssured())
+                .when()
+                .get(flow.domesticConnector.fullMetadataUrl)
+                .then()
+                .statusCode(200)
+    }
+
 
     @Step("Get heartbeat")
     static Response getHeartbeat(Flow flow) {
@@ -30,45 +44,45 @@ class Requests {
                 .relaxedHTTPSValidation()
                 .filter(new AllureRestAssured())
                 .when()
-                .get(flow.connector.fullheartbeatUrl)
+                .get(flow.domesticConnector.fullheartbeatUrl)
                 .then()
                 .statusCode(200)
                 .extract().response()
     }
 
     @Step("Open authentication page")
-    static Response getAuthenticationPage(Flow flow, String samlRequest) {
+    static Response getAuthenticationPage(Flow flow, String requestType, String samlRequest) {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
-                        .formParam("SAMLRequest", samlRequest)
-                        .formParam("RelayState", "")
+                        .param("SAMLRequest", samlRequest)
+                //     .param("RelayState", "")
+                        .param("country", "CA")
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
-                        .post(flow.specificProxyService.fullAuthenticationRequestUrl)
+                        .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl)
                         .then()
                         .extract().response()
         return response
     }
 
     @Step("Proxy Service Request")
-    static Response proxyServiceRequest(Flow flow, String action, String token) {
+    static Response proxyServiceRequest(Flow flow, String requestType, String actionUrl, String token) {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
-                        .formParam("token", token)
-
+                        .param("token", token)
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
-                        .post(action)
+                        .request(requestType, actionUrl)
                         .then()
                         .extract().response()
         return response
     }
 
-    @Step("TARA redirect Request")
+    @Step("Follow redirect")
     static Response followRedirect(Flow flow, String location) {
         return given()
                 .filter(flow.cookieFilter)
@@ -82,52 +96,6 @@ class Requests {
                 .extract().response()
     }
 
-    @Step("{flow.endUser}Follow OpenID Connect Authentication request redirect")
-    static Response followTARARedirect(Flow flow, String location) {
-        return given()
-                .filter(flow.getCookieFilter())
-                .filter(new AllureRestAssured())
-                .relaxedHTTPSValidation()
-                .when()
-                .redirects().follow(false)
-                .urlEncodingEnabled(false)
-                .get(location)
-                .then()
-                .extract().response()
-    }
-
-    @Step("Consent Submit")
-    static Response consentSubmit(Flow flow, String token) {
-        Response response =
-                given()
-                        .filter(flow.cookieFilter)
-                        .filter(new AllureRestAssured())
-                        .queryParam("token", token)
-                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
-                        .when()
-                        .redirects().follow(false)
-                        .get(flow.specificProxyService.fullConsentUrl)
-                        .then()
-                        .extract().response()
-        return response
-    }
-
-    @Step("Consent Cancel")
-    static Response consentCancel(Flow flow, String token) {
-        Response response =
-                given()
-                        .filter(flow.cookieFilter)
-                        .filter(new AllureRestAssured())
-                        .queryParam("token", token)
-                        .queryParam("cancel", true)
-                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
-                        .when()
-                        .redirects().follow(false)
-                        .get(flow.specificProxyService.fullConsentUrl)
-                        .then()
-                        .extract().response()
-        return response
-    }
 
     @Step("Return to service provider without authentication")
     static Response backToServiceProvider(Flow flow, String url) {
@@ -144,19 +112,150 @@ class Requests {
         return response
     }
 
-    @Step("First page")
-    static Response startingPoint(Flow flow, String country) {
+    @Step("Colleague Request")
+    static Response colleagueRequest(Flow flow, String requestType, String samlRequest, String url) {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
-                        .queryParam("Country", country)
+                        .param("SAMLRequest", samlRequest)
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
-                        .redirects().follow(false)
-                        .get(flow.specificProxyService.fullConsentUrl)
+                        .request(requestType, url)
                         .then()
                         .extract().response()
         return response
     }
+
+    @Step("IdP request")
+    static Response idpRequest(Flow flow, String requestType, String actionUrl, String smsspRequest) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .param("SMSSPRequest", smsspRequest)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .request(requestType, actionUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("IdP authorization")
+    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .formParam("smsspToken", smsspToken)
+                        .formParam("username", "xavi")
+                        .formParam("password", "creus")
+                        .formParam("eidasloa", "E")
+                        .formParam("eidasnameid", "persistent")
+                        .formParam("callback", flow.foreignProxyService.fullCallbackUrl)
+                        .formParam("jSonRequestDecoded", smsspTokenRequestJson)
+                        .formParam("doNotmodifyTheResponse", "off")
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .post(flow.foreignIdpProvider.fullResponseUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("IdP authorization response")
+    static Response idpAuthorizationResponse(Flow flow, String action, String smsspTokenResponseJson) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .formParam("SMSSPResponse", smsspTokenResponseJson)
+
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .post(action)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("After Citizen Consent response")
+    static Response afterCitizenConsentResponse(Flow flow, String binaryLightToken) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .formParam("binaryLightToken", binaryLightToken)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .post(flow.foreignProxyService.fullConsentUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("Eidas authorization response")
+    static Response getAuthorizationResponseFromEidas(Flow flow, String requestType, String actionUrl, String lightToken) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .param("token", lightToken)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .redirects().follow(false)
+                        .request(requestType, actionUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("Eidas authorization response with additional parameters")
+    static Response getAuthorizationResponseFromEidasWithSomeUnusedParams(Flow flow, String requestType, String actionUrl, String lightToken, String paramName) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .param("token", lightToken)
+                        .param(paramName, "c3BlY2lmaWNDb21tdW5pY2F0aW9uRGVmaW5pdGlvbkNvbm5lY3RvclJlc3BvbnNlfGM4NGE4NGUyLWRhNmQtNGFkMi1hNGIwLWEwNWMzMDA2MTJiYnwyMDIwLTExLTA1IDAwOjIwOjM3IDcwOXxKdGtoVFlJYXZjMy9sU3ZjZm8yM2xSOGxabUpzQ2xELzlwQVZQYzJ2c1FnPQ==")
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .redirects().follow(false)
+                        .request(requestType, actionUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("Eidas Colleague Response")
+    static Response colleagueResponse(Flow flow, String samlResponse) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .formParam("SAMLResponse", samlResponse)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .post(flow.domesticConnector.fullEidasColleagueResponseUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("Send LightRequest to Eidas")
+    static Response sendLightTokenRequestToEidas(Flow flow, String url, String lightToken) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .formParam("token", lightToken)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .post(url)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
 }

@@ -14,63 +14,6 @@ import static org.opensaml.saml.common.SAMLVersion.VERSION_20;
 
 public class ResponseBuilderBase {
 
-
-    protected Status buildErrorStatus(String error) {
-        Status status = new StatusBuilder().buildObject();
-        status.setStatusCode(buildStatusCode(error));
-        status.setStatusMessage(buildStatusMessage(error));
-        return status;
-    }
-
-    protected StatusCode buildStatusCode (String error) {
-        StatusCode statusCode = new StatusCodeBuilder().buildObject();
-        StatusCode statCode = new StatusCodeBuilder().buildObject();
-        String valueUrn = "urn:oasis:names:tc:SAML:2.0:status:";
-        switch(error) {
-            case "AuthFailed":
-                statusCode.setValue(valueUrn + "Responder");
-                statCode.setValue(valueUrn + "AuthnFailed");
-                break;
-            case "ConsentNotGiven":
-                statusCode.setValue(valueUrn + "Requester");
-                statCode.setValue(valueUrn + "RequestDenied");
-                break;
-            default:
-                statusCode.setValue("Not existing keyword for error:" + error);
-                statCode.setValue("Not existing keyword for error:");
-                break;
-        }
-        statusCode.setStatusCode(statCode);
-        return statusCode;
-    }
-
-    protected StatusMessage buildStatusMessage(String error) {
-        StatusMessage statusMessage = new StatusMessageBuilder().buildObject();
-        switch(error) {
-            case "AuthFailed":
-                statusMessage.setMessage("003002 - Authentication Failed.");
-                break;
-            case "ConsentNotGiven":
-                statusMessage.setMessage("202007 - Consent not given for a mandatory attribute.");
-                break;
-            default:
-                statusMessage.setMessage("Not existing keyword for error:" + error);
-                break;
-        }
-        return statusMessage;
-    }
-
-    protected Status buildSuccessStatus() {
-        Status status = new StatusBuilder().buildObject();
-        StatusCode statusCode = new StatusCodeBuilder().buildObject();
-        statusCode.setValue("urn:oasis:names:tc:SAML:2.0:status:Success");
-        status.setStatusCode(statusCode);
-        StatusMessage statusMessage = new StatusMessageBuilder().buildObject();
-        statusMessage.setMessage("urn:oasis:names:tc:SAML:2.0:status:Success");
-        status.setStatusMessage(statusMessage);
-        return status;
-    }
-
     protected Status buildSuccessStatusWithStatusCode(Integer statusCodeCnt) {
         Status status = new StatusBuilder().buildObject();
         switch (statusCodeCnt) {
@@ -101,18 +44,6 @@ public class ResponseBuilderBase {
         issuer.setValue(issuerValue);
         issuer.setFormat("urn:oasis:names:tc:SAML:2.0:nameid-format:entity");
         return issuer;
-    }
-
-    protected Assertion buildAssertion(String inResponseId, String recipient, DateTime issuInstant, Integer acceptableTimeMin, String loa, String personIdentifier, String issuerValue, String audienceUri) {
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setIssueInstant(issuInstant);
-        assertion.setVersion(VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId,recipient, issuInstant, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, issuInstant, acceptableTimeMin));
-        assertion.getAuthnStatements().add(buildAuthnStatement(issuInstant, loa));
-        return assertion;
     }
 
     protected Subject buildSubject(String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String personIdentifier) {
@@ -191,17 +122,6 @@ public class ResponseBuilderBase {
         attributeStatement.getAttributes().add(buildAttribute("PlaceOfBirth", "http://eidas.europa.eu/attributes/naturalperson/BirthPlaceCvlocation", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", "eidas:BirthPlaceCvlocationType", birthPlace));
         attributeStatement.getAttributes().add(buildAttribute("CurrentAddress", "http://eidas.europa.eu/attributes/naturalperson/Cvaddress", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", "eidas:CvaddressType", address));
         attributeStatement.getAttributes().add(buildAttribute("Gender", "http://eidas.europa.eu/attributes/naturalperson/GenderCode", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", "eidas:GenderCodeType", gender));
-        return attributeStatement;
-    }
-
-    protected AttributeStatement buildMinimalAttributeStatementWithFaultyNameFormat(String givenName, String familyName, String personIdentifier, String dateOfBirth) {
-        AttributeStatement attributeStatement = new AttributeStatementBuilder().buildObject();
-        if(givenName != null) {
-            attributeStatement.getAttributes().add(buildAttribute("FirstName", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", "urn:oasis:names:tc:SAML:2.0:attrname:uri", "eidas:CurrentGivenNameType", givenName));
-        }
-        attributeStatement.getAttributes().add(buildAttribute("FamilyName", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", "urn:oasis:names:tc:SAML:2.0:format:uri", "eidas:CurrentFamilyNameType", familyName));
-        attributeStatement.getAttributes().add(buildAttribute("PersonIdentifier", "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier", "urn:oasis:names:tc:SAML:7.0:attrname-format:uri", "eidas:PersonIdentifierType", personIdentifier));
-        attributeStatement.getAttributes().add(buildAttribute("DateOfBirth", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", "SAML:2.0:attrname-format:uri", "eidas:DateOfBirthType", dateOfBirth));
         return attributeStatement;
     }
 

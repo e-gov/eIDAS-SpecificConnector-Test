@@ -13,7 +13,7 @@ import java.nio.file.Paths
 import java.security.KeyStore
 import java.security.Security
 
-class SpecificConnectorSpecification extends Specification {
+class EEConnectorSpecification extends Specification {
     @Shared
     Properties props = new Properties()
     @Shared
@@ -31,8 +31,6 @@ class SpecificConnectorSpecification extends Specification {
         if (envFile) {
             envFile.withInputStream {
                 envProperties.load(it)
-                //envProperties."configuration_base_path"
-                //envProperties."configuration_path"
             }
             Paths.get(envProperties.getProperty("configuration_base_path"), envProperties.getProperty("configuration_path"), "application.properties").withInputStream {
                 props.load(it)
@@ -47,50 +45,43 @@ class SpecificConnectorSpecification extends Specification {
                 props.load(it)
             }
         }
-        /*
+
         try {
-            KeyStore keystore = KeyStore.getInstance("jks")
+            KeyStore keystore = KeyStore.getInstance("PKCS12")
             if (envFile) {
-                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("connector.keystore.file")).withInputStream {
-                    keystore.load(it, props.get("connector.keystore.password").toString().toCharArray())
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-spservice.keystore.file")).withInputStream {
+                    keystore.load(it, props.get("ee-spservice.keystore.password").toString().toCharArray())
                 }
             } else {
-                this.getClass().getResource("/${props."connector.keystore.file"}").withInputStream {
-                    keystore.load(it, props.get("connector.keystore.password").toString().toCharArray())
+                this.getClass().getResource("/${props."ee-spservice.keystore.file"}").withInputStream {
+                    keystore.load(it, props.get("ee-spservice.keystore.password").toString().toCharArray())
                 }
             }
 
-            signatureCredential = KeystoreUtils.getCredential(keystore, props."connector.keystore.requestSigningKeyId" as String, props."connector.keystore.requestSigningKeyPassword" as String)
+            signatureCredential = KeystoreUtils.getCredential(keystore, props."ee-spservice.keystore.requestSigningKeyId" as String, props."ee-spservice.keystore.requestSigningKeyPassword" as String)
         }
-
-        /*
-        config = new RestAssuredConfig().sslConfig(new SSLConfig().
-                    keyStore(testTaraProperties.getFrontEndKeystore(), testTaraProperties.getFrontEndKeystorePassword()).
-                    trustStore(testTaraProperties.getBackEndTruststore(), testTaraProperties.getBackEndTruststorePassword()))
-         */
-        /*
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
         }
-        */
-        /*
+
+
         try {
-            KeyStore encryptionKeystore = KeyStore.getInstance("jks")
+            KeyStore encryptionKeystore = KeyStore.getInstance("PKCS12")
             if (envFile) {
-                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("connector.encryption.keystore.file")).withInputStream {
-                    encryptionKeystore.load(it, props.get("connector.encryption.keystore.password").toString().toCharArray())
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-spservice.keystore.file")).withInputStream {
+                    encryptionKeystore.load(it, props.get("ee-spservice.keystore.password").toString().toCharArray())
                 }
             } else {
-                this.getClass().getResource("/${props."connector.encryption.keystore.file"}").withInputStream {
-                    encryptionKeystore.load(it, props.get("connector.encryption.keystore.password").toString().toCharArray())
+                this.getClass().getResource("/${props."ee-spservice.keystore.file"}").withInputStream {
+                    encryptionKeystore.load(it, props.get("ee-spservice.keystore.password").toString().toCharArray())
                 }
             }
-            encryptionCredential = KeystoreUtils.getCredential(encryptionKeystore, props."connector.encryption.keystore.requestEncryptionKeyId" as String, props."connector.encryption.keystore.requestEncryptionKeyPassword" as String)
+            encryptionCredential = KeystoreUtils.getCredential(encryptionKeystore, props."ee-spservice.keystore.samlAssertionDecryptKey" as String, props."ee-spservice.keystore.samlAssertionDecryptPassword" as String)
 
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
         }
-        */
+
     }
 }

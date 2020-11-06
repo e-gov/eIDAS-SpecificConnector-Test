@@ -23,29 +23,9 @@ import org.opensaml.xmlsec.signature.support.Signer;
 
 public class ResponseAssertionBuilderUtils extends ResponseBuilderBase {
 
-    protected EncryptedAssertion buildEncrAssertion(Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = buildAssertionForSigning(inResponseId, recipient ,issueInstant, acceptableTimeMin, loa, givenName, familyName, personIdentifier, dateOfBirth, issuerValue, audienceUri);
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
     protected EncryptedAssertion buildEncrAssertionWithMinLegal(Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String legalName, String legalPno, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
         Signature signature = prepareSignature(signCredential);
         Assertion assertion = buildLegalAssertionForSigning(inResponseId, recipient ,issueInstant, acceptableTimeMin, loa, givenName, familyName, personIdentifier, dateOfBirth, legalName, legalPno, issuerValue, audienceUri);
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
-    protected EncryptedAssertion buildEncrAssertionWithMaxAttributes(Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String birthName, String birthPlace, String address, String gender, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = buildMaximumAssertionForSigning(inResponseId, recipient ,issueInstant, acceptableTimeMin, loa, givenName, familyName, personIdentifier, dateOfBirth, birthName, birthPlace, address, gender, issuerValue, audienceUri);
         assertion.setSignature(signature);
         XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
         Signer.signObject(signature);
@@ -79,18 +59,6 @@ public class ResponseAssertionBuilderUtils extends ResponseBuilderBase {
         return assertion;
     }
 
-    protected Assertion buildMaximumAssertionForSigning(String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String birthName, String birthPlace, String address, String gender, String issuerValue, String audienceUri) {
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setIssueInstant(issueInstant);
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId, recipient, issueInstant, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, issueInstant, acceptableTimeMin));
-        assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,loa));
-        assertion.getAttributeStatements().add(buildMaximalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth, birthName, birthPlace, address, gender));
-        return assertion;
-    }
 
     protected Signature prepareSignature(Credential signCredential) throws SecurityException {
         Signature signature = (Signature) XMLObjectProviderRegistrySupport.getBuilderFactory()
@@ -124,137 +92,10 @@ public class ResponseAssertionBuilderUtils extends ResponseBuilderBase {
         return  encryptedAssertion;
     }
 
-    protected EncryptedAssertion buildEncrAssertionWithoutAssertionSignature(Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws EncryptionException {
-        Assertion assertion = buildAssertionForSigning(inResponseId, recipient ,issueInstant, acceptableTimeMin, loa, givenName, familyName, personIdentifier, dateOfBirth, issuerValue, audienceUri);
-        return encryptAssertion(assertion, encCredential);
-    }
-
-    protected Assertion buildAssertionWithoutEncryption(Credential signCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = buildAssertionForSigning(inResponseId, recipient ,issueInstant, acceptableTimeMin, loa, givenName, familyName, personIdentifier, dateOfBirth, issuerValue, audienceUri);
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return assertion;
-    }
-
-    protected EncryptedAssertion buildEncrAssertionWithWrongNameFormat(Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setIssueInstant(issueInstant);
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId, recipient, issueInstant, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, issueInstant, acceptableTimeMin));
-        assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,loa));
-        assertion.getAttributeStatements().add(buildMinimalAttributeStatementWithFaultyNameFormat(givenName, familyName, personIdentifier, dateOfBirth));
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
-    protected EncryptedAssertion buildEncrAssertionWithAuthnStatementCnt(Integer cnt, Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setIssueInstant(issueInstant);
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId, recipient, issueInstant, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, issueInstant, acceptableTimeMin));
-        if (cnt == 1) {
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,loa));
-        }
-        else if (cnt == 2) {
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,loa));
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,"http://idp.europa.eu/LoA/low"));
-        }
-        else if (cnt == 3) {
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,loa));
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,"http://idp.europa.eu/LoA/low"));
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,"http://idp.europa.eu/LoA/high"));
-        }
-        assertion.getAttributeStatements().add(buildMinimalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth));
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
-    protected EncryptedAssertion buildEncrAssertionForTimeManipulation(DateTime assertionTime, DateTime subjectTime, DateTime conditionsTime,  DateTime authnTime, Credential signCredential, Credential encCredential, String inResponseId, String recipient, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setIssueInstant(assertionTime);
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId, recipient, subjectTime, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, conditionsTime, acceptableTimeMin));
-        assertion.getAuthnStatements().add(buildAuthnStatement(authnTime,loa));
-        assertion.getAttributeStatements().add(buildMinimalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth));        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
-    protected EncryptedAssertion buildEncrAssertionWithAttributeCnt(Integer attributeCnt, Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setIssueInstant(issueInstant);
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId, recipient, issueInstant, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, issueInstant, acceptableTimeMin));
-        assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant,loa));
-        if (attributeCnt == 1) {
-            assertion.getAttributeStatements().add(buildMinimalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth));
-        } else if (attributeCnt == 2) {
-            assertion.getAttributeStatements().add(buildMinimalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth));
-            assertion.getAttributeStatements().add(buildMinimalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth));
-        }
-
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
     protected EncryptedAssertion buildEncrAssertionWithoutSubject(Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
         Signature signature = prepareSignature(signCredential);
         Assertion assertion = buildAssertionForSigning(inResponseId, recipient ,issueInstant, acceptableTimeMin, loa, givenName, familyName, personIdentifier, dateOfBirth, issuerValue, audienceUri);
         assertion.setSubject(null);
-        assertion.setSignature(signature);
-        XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
-        Signer.signObject(signature);
-
-        return encryptAssertion(assertion, encCredential);
-    }
-
-    protected EncryptedAssertion buildEncrAssertionWithAuthnContextCnt(Integer cnt, Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {
-        Signature signature = prepareSignature(signCredential);
-        Assertion assertion = new AssertionBuilder().buildObject();
-        assertion.setIssueInstant(issueInstant);
-        assertion.setID(OpenSAMLUtils.generateSecureRandomId());
-        assertion.setVersion(SAMLVersion.VERSION_20);
-        assertion.setIssuer(buildIssuer(issuerValue));
-        assertion.setSubject(buildSubject(inResponseId, recipient, issueInstant, acceptableTimeMin, personIdentifier));
-        assertion.setConditions(buildConditions(audienceUri, issueInstant, acceptableTimeMin));
-        if (cnt == 1) {
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant, loa));
-        }
-        else if (cnt == 2) {
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant, loa));
-            assertion.getAuthnStatements().add(buildAuthnStatement(issueInstant, "http://idp.europa.eu/LoA/low"));
-        }
-        assertion.getAttributeStatements().add(buildMinimalAttributeStatement(givenName, familyName, personIdentifier, dateOfBirth));
         assertion.setSignature(signature);
         XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(assertion).marshall(assertion);
         Signer.signObject(signature);

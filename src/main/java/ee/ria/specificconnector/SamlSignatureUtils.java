@@ -20,16 +20,6 @@ import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 
 public class SamlSignatureUtils {
-    public static Boolean validateSamlResponseSignature(String body) {
-        XmlPath metadataXml = new XmlPath(body);
-        try {
-            java.security.cert.X509Certificate x509 = X509Support.decodeCertificate(metadataXml.getString("Response.Signature.KeyInfo.X509Data.X509Certificate"));
-            validateSignature(body, x509);
-            return true;
-        } catch (CertificateException e) {
-            throw new RuntimeException("Certificate parsing in validateSignature() failed:" + e.getMessage(), e);
-        }
-    }
 
     protected static void validateSignature(String body, java.security.cert.X509Certificate x509) {
         try {
