@@ -67,6 +67,24 @@ class Requests {
         return response
     }
 
+    @Step("Open authentication page with duplicate params")
+    static Response getAuthenticationPageWithDuplicateParams(Flow flow, String requestType, String samlRequest, String additionalParam = "salt", String additionalParamValue = "lqx") {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .param("SAMLRequest", samlRequest)
+                        .param("RelayState")
+                        .param(additionalParam, additionalParamValue)
+                        .param("country", "CA")
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
     @Step("Open authentication page with parameters")
     static Response getAuthenticationPageWithParameters(Flow flow, String requestType, Map hashMap) {
         Response response =
@@ -74,7 +92,6 @@ class Requests {
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
                         .params(hashMap)
-                        .param("RelayState", "1234567890")
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
                         .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl)

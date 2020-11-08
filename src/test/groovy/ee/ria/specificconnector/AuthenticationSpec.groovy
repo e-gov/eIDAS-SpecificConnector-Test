@@ -133,7 +133,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_ENDPOINT")
     def "request authentication with multiple instances"() {
         expect:
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
+        Response response = Requests.getAuthenticationPageWithDuplicateParams(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
         assertEquals("Correct HTTP status code is returned", response.statusCode(), statusCode)
         assertEquals("Correct content type", response.getContentType(), "application/json")
         assertThat(response.body().jsonPath().get("message"), Matchers.equalTo(message))
@@ -143,6 +143,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         additionalParam || statusCode || message
         "SAMLRequest"   || 400        || "Duplicate request parameter 'SAMLRequest'"
         "country"       || 400        || "Duplicate request parameter 'country'"
+        "RelayState"    || 400        || "Duplicate request parameter 'RelayState'"
     }
 
     @Unroll
@@ -169,7 +170,9 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "SAMLRequest" || _ || _ || _ || _ || _  || _ || 400 || "Required String parameter 'country' is not present"
         "SAMLRequest" || "country" || _ || _ || _ || _  || _ || 400 || "post.country: must match "
         "SAMLRequest" || "country" || "CAA" || _ || _ || _  || _ || 400 || "post.country: must match "
-        "SAMLRequest" || "country" || "CA" || "RelayState" || _ || "RelayState"  || "AAABBBCCC" || 400 || "Duplicate request parameter 'RelayState'"
+        "SAMLRequest" || "country" || "CA" || "RelayState" || "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1" || _  || _ || 400 || "post.RelayState: must match"
+        "SAMLRequest" || "country" || "CA" || "RelayState" || "\b\f" || _  || _ || 400 || "post.RelayState: must match"
+        _             || "SAMLRequest" || "Ää" || "country" || "CA" || _  || _ || 400 || "Invalid saml request format"
     }
 
     @Unroll
