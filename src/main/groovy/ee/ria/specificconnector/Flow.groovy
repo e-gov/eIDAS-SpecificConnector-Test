@@ -84,6 +84,10 @@ class DomesticSpService {
     String metadataUrl
     Credential signatureCredential
     Credential encryptionCredential
+    Credential metadataCredential
+    Credential expiredCredential
+    Credential unsupportedCredential
+    Credential unsupportedByConfigurationCredential
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"

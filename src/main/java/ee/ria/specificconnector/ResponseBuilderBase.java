@@ -6,6 +6,7 @@ import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
 import org.opensaml.saml.saml2.core.*;
 import org.opensaml.saml.saml2.core.impl.*;
 import org.opensaml.security.credential.Credential;
+import org.opensaml.security.x509.BasicX509Credential;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 
 import javax.xml.namespace.QName;
@@ -142,10 +143,23 @@ public class ResponseBuilderBase {
     }
 
     protected String getSignatureAlgorithm(Credential credential) {
-        if ("RSA".equals(credential.getPublicKey().getAlgorithm())) {
-            return SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
-        } else {
-            return SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA256;
+        String algorithmUrl = null;
+        String algorithm = ((BasicX509Credential) credential).getEntityCertificate().getSigAlgName().toUpperCase();
+
+        switch (algorithm) {
+            case "SHA256WITHECDSA":
+                algorithmUrl = SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA256;
+                break;
+            case "SHA1WITHECDSA":
+                algorithmUrl = SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA1;
+                break;
+            case "SHA384WITHECDSA":
+                algorithmUrl = SignatureConstants.ALGO_ID_SIGNATURE_ECDSA_SHA384;
+                break;
+            case "SHA256WITHRSA":
+                algorithmUrl = SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
+                break;
         }
+        return algorithmUrl;
     }
 }

@@ -20,6 +20,14 @@ class EEConnectorSpecification extends Specification {
     Credential signatureCredential
     @Shared
     Credential encryptionCredential
+    @Shared
+    Credential metadataCredential
+    @Shared
+    Credential expiredCredential
+    @Shared
+    Credential unsupportedCredential
+    @Shared
+    Credential unsupportedByConfigurationCredential
 
     def setupSpec() {
         InitializationService.initialize()
@@ -83,5 +91,72 @@ class EEConnectorSpecification extends Specification {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
         }
 
+        try {
+            KeyStore metadataKeystore = KeyStore.getInstance("PKCS12")
+            if (envFile) {
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-spservice.keystore.file")).withInputStream {
+                    metadataKeystore.load(it, props.get("ee-spservice.keystore.password").toString().toCharArray())
+                }
+            } else {
+                this.getClass().getResource("/${props."ee-spservice.keystore.file"}").withInputStream {
+                    metadataKeystore.load(it, props.get("ee-spservice.keystore.password").toString().toCharArray())
+                }
+            }
+            metadataCredential = KeystoreUtils.getCredential(metadataKeystore, props."ee-spservice.keystore.metadataKeyId" as String, props."ee-spservice.keystore.metadataKeyPassword" as String)
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Something went wrong initializing credentials:", e)
+        }
+
+        try {
+            KeyStore expiredKeystore = KeyStore.getInstance("PKCS12")
+            if (envFile) {
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-spservice.test.keystore.file")).withInputStream {
+                    expiredKeystore.load(it, props.get("ee-spservice.test.keystore.password").toString().toCharArray())
+                }
+            } else {
+                this.getClass().getResource("/${props."ee-spservice.test.keystore.file"}").withInputStream {
+                    expiredKeystore.load(it, props.get("ee-spservice.test.keystore.password").toString().toCharArray())
+                }
+            }
+            expiredCredential = KeystoreUtils.getCredential(expiredKeystore, props."ee-spservice.test.keystore.expiredKeyId" as String, props."ee-spservice.test.keystore.expiredKeyPassword" as String)
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Something went wrong initializing credentials:", e)
+        }
+
+        try {
+            KeyStore unsupportedKeystore = KeyStore.getInstance("PKCS12")
+            if (envFile) {
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-spservice.test.keystore.file")).withInputStream {
+                    unsupportedKeystore.load(it, props.get("ee-spservice.test.keystore.password").toString().toCharArray())
+                }
+            } else {
+                this.getClass().getResource("/${props."ee-spservice.test.keystore.file"}").withInputStream {
+                    unsupportedKeystore.load(it, props.get("ee-spservice.test.keystore.password").toString().toCharArray())
+                }
+            }
+            unsupportedCredential = KeystoreUtils.getCredential(unsupportedKeystore, props."ee-spservice.test.keystore.unsupportedKeyId" as String, props."ee-spservice.test.keystore.unsupportedKeyPassword" as String)
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Something went wrong initializing credentials:", e)
+        }
+
+        try {
+            KeyStore unsupportedByConfigurationKeystore = KeyStore.getInstance("PKCS12")
+            if (envFile) {
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-spservice.test.keystore.file")).withInputStream {
+                    unsupportedByConfigurationKeystore.load(it, props.get("ee-spservice.test.keystore.password").toString().toCharArray())
+                }
+            } else {
+                this.getClass().getResource("/${props."ee-spservice.test.keystore.file"}").withInputStream {
+                    unsupportedByConfigurationKeystore.load(it, props.get("ee-spservice.test.keystore.password").toString().toCharArray())
+                }
+            }
+            unsupportedByConfigurationCredential = KeystoreUtils.getCredential(unsupportedByConfigurationKeystore, props."ee-spservice.test.keystore.unsupportedByConfigurationKeyId" as String, props."ee-spservice.test.keystore.unsupportedByConfigurationKeyPassword" as String)
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Something went wrong initializing credentials:", e)
+        }
     }
 }

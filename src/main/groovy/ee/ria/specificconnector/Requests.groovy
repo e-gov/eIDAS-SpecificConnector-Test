@@ -67,6 +67,22 @@ class Requests {
         return response
     }
 
+    @Step("Open authentication page with parameters")
+    static Response getAuthenticationPageWithParameters(Flow flow, String requestType, Map hashMap) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .params(hashMap)
+                        .param("RelayState", "1234567890")
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
     @Step("Proxy Service Request")
     static Response proxyServiceRequest(Flow flow, String requestType, String actionUrl, String token) {
         Response response =

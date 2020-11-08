@@ -22,11 +22,15 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def setup() {
         flow.domesticSpService.signatureCredential = signatureCredential
         flow.domesticSpService.encryptionCredential = encryptionCredential
+        flow.domesticSpService.metadataCredential = metadataCredential
+        flow.domesticSpService.expiredCredential = expiredCredential
+        flow.domesticSpService.unsupportedCredential = unsupportedCredential
+        flow.domesticSpService.unsupportedByConfigurationCredential = unsupportedByConfigurationCredential
         flow.cookieFilter = new CookieFilter()
     }
 
     @Unroll
-    @Feature("AUTHENTICATION")
+    @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
     def "request authentication with post"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
@@ -78,7 +82,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     }
 
     @Unroll
-    @Feature("AUTHENTICATION")
+    @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
     def "request authentication with get"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
@@ -129,11 +133,43 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_ENDPOINT")
     def "request authentication with multiple instances"() {
         expect:
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_POST, "1234567", "SAMLRequest", "78901234")
-        assertEquals("Correct HTTP status code is returned", response.statusCode(), 400)
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), statusCode)
         assertEquals("Correct content type", response.getContentType(), "application/json")
-        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("Duplicate request parameter 'SAMLRequest'"))
+        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo(message))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+
+        where:
+        additionalParam || statusCode || message
+        "SAMLRequest"   || 400        || "Duplicate request parameter 'SAMLRequest'"
+        "country"       || 400        || "Duplicate request parameter 'country'"
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_ENDPOINT")
+    def "request authentication with invalid parameters. Expected error message: [#message]"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        def map = [:]
+        // Spock specific workaround
+        def map1 = SamlUtils.setUrlParameter(map, param1, samlRequest)
+        def map2 = SamlUtils.setUrlParameter(map, param2, param2Value)
+        def map3 = SamlUtils.setUrlParameter(map, param3, param3Value)
+        def map4 = SamlUtils.setUrlParameter(map, param4, param4Value)
+
+        Response response = Requests.getAuthenticationPageWithParameters(flow, REQUEST_TYPE_POST, map)
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), statusCode)
+        assertEquals("Correct content type", response.getContentType(), "application/json")
+        assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+
+        where:
+        param1        || param2 || param2Value || param3 || param3Value || param4 || param4Value || statusCode || message
+        _             || _ || _ || _ || _ || _  || _ || 400 || "Required String parameter 'SAMLRequest' is not present"
+        "SAMLRequest" || _ || _ || _ || _ || _  || _ || 400 || "Required String parameter 'country' is not present"
+        "SAMLRequest" || "country" || _ || _ || _ || _  || _ || 400 || "post.country: must match "
+        "SAMLRequest" || "country" || "CAA" || _ || _ || _  || _ || 400 || "post.country: must match "
+        "SAMLRequest" || "country" || "CA" || "RelayState" || _ || "RelayState"  || "AAABBBCCC" || 400 || "Duplicate request parameter 'RelayState'"
     }
 
     @Unroll
@@ -171,5 +207,25 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("SAML request is invalid - unsupported requested attributes"))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
     }
+
+    @Unroll
+    @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
+    def "request authentication with invalid signing certificate #credential.entityId"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithInvalidCredential(flow, "eidas-eeserviceprovider", credential)
+        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", response.statusCode(), 400)
+        assertEquals("Correct content type", response.getContentType(), "application/json")
+        assertThat(response.body().jsonPath().get("message"), Matchers.equalTo("SAML request is invalid - invalid signature"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+
+        where:
+        credential                           || statusCode
+        metadataCredential                   || 400
+        expiredCredential                    || 400
+        unsupportedCredential                || 400
+        unsupportedByConfigurationCredential || 400
+    }
+
 
 }

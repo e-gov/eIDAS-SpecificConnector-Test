@@ -6,6 +6,7 @@ import io.restassured.response.Response
 import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration
 import org.opensaml.saml.saml2.core.AuthnRequest
 import org.opensaml.saml.saml2.core.NameIDType
+import org.opensaml.security.credential.Credential
 
 class Steps {
     static String LOA_HIGH = "http://eidas.europa.eu/LoA/high"
@@ -69,6 +70,22 @@ class Steps {
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
                 loa, comparison, nameIdFormat, spType)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+
+        SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
+    @Step("Create Natural Person authentication request with invalid credential")
+    static String getAuthnRequestWithInvalidCredential(Flow flow, String providerName, Credential signingCredential) {
+
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(signingCredential,
+                providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
+                LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM, NameIDType.UNSPECIFIED, "public")
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
