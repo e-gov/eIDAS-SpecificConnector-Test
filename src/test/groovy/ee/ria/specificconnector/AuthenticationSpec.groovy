@@ -254,7 +254,6 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "ID"           || "31"                                                    || "SAML request is invalid - does not conform to schema"
         "IssueInstant" || _                                                       || "SAML request is invalid - does not conform to schema"
         "IssueInstant" || "2030-11-08T19:29:47.759Z"                              || "SAML request is invalid"
-        "ProviderName" || _                                                       || "SAML request is invalid"
         "Version"      || _                                                       || "SAML request is invalid @Version"
         "Version"      || "3.0"                                                   || "SAML request is invalid @Version"
         "Issuer"       || _                                                       || "SAML request is invalid saml2:Issuer"
@@ -277,6 +276,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         attributeName  || attributeValue     || message
         "ProviderName" || "illegal-provider" || "SAML request is invalid"
         "SPType"       || _                  || "SAML request is invalid eidas:SPType"
+        "ProviderName" || _                  || "SAML request is invalid"
 
     }
 }
