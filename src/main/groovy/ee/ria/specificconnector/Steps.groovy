@@ -7,6 +7,7 @@ import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration
 import org.opensaml.saml.saml2.core.AuthnRequest
 import org.opensaml.saml.saml2.core.NameIDType
 import org.opensaml.security.credential.Credential
+import org.spockframework.lang.Wildcard
 
 class Steps {
     static String LOA_HIGH = "http://eidas.europa.eu/LoA/high"
@@ -90,6 +91,30 @@ class Steps {
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
         SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
+    @Step("Create Natural Person authentication request with missing attribute")
+    static String getAuthnRequestWithMissingAttribute(Flow flow, String providerName, String attributeName, Object attributeValue) {
+        if (attributeValue instanceof Wildcard) {
+            attributeValue = null
+        }
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestWithMissingAttribute(flow.domesticSpService.signatureCredential,
+                providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
+                LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM,
+                NameIDType.UNSPECIFIED,
+                "public",
+                attributeName,
+                attributeValue,
+                flow.domesticSpService.metadataCredential)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+        if (!attributeName.equals("Signature")) {
+            SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        }
         return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
     }
 

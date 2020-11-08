@@ -4,6 +4,7 @@ import org.joda.time.DateTime;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.schema.XSAny;
 import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
+import org.opensaml.saml.common.SAMLVersion;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.core.*;
 import org.opensaml.security.credential.Credential;
@@ -11,6 +12,8 @@ import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.Signer;
 
 import javax.xml.namespace.QName;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 
 public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
@@ -100,6 +103,108 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
+    public AuthnRequest buildAuthnRequestWithMissingAttribute(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType, String attributeName, Object attributeValue, Credential anotherCredential) {
+        try {
+            Signature signature = prepareSignature(signCredential);
+            Signature anotherSignature = prepareSignature(anotherCredential);
+            DateTime timeNow = new DateTime();
+            AuthnRequest authnRequest = OpenSAMLUtils.buildSAMLObject(AuthnRequest.class);
+            if (attributeName.equals("IssueInstant")) {
+                if (attributeValue != null) {
+                    authnRequest.setIssueInstant(new DateTime(attributeValue));
+                }
+            } else {
+                authnRequest.setIssueInstant(timeNow);
+            }
+            if (attributeName.equals("ForceAuthn")) {
+                if (attributeValue != null) {
+                    authnRequest.setForceAuthn((Boolean) attributeValue);
+                }
+            } else {
+                authnRequest.setForceAuthn(true);
+            }
+            if (attributeName.equals("IsPassive")) {
+                if (attributeValue != null) {
+                    authnRequest.setIsPassive((Boolean) attributeValue);
+                }
+            } else {
+                authnRequest.setIsPassive(false);
+            }
+            if (attributeName.equals("ProviderName")) {
+                if (attributeValue != null) {
+                    authnRequest.setProviderName(attributeValue.toString());
+                }
+            } else {
+                authnRequest.setProviderName(providerName);
+            }
+            if (attributeName.equals("Destination")) {
+                if (attributeValue != null) {
+                    authnRequest.setDestination(attributeValue.toString());
+                }
+            } else {
+                authnRequest.setDestination(destination);
+            }
+            if (attributeName.equals("Version")) {
+                if (attributeValue != null) {
+                    authnRequest.setVersion(SAMLVersion.valueOf(attributeValue.toString()));
+                }
+                else {
+                    authnRequest.setVersion(SAMLVersion.VERSION_10);
+                }
+            }
+            authnRequest.setProtocolBinding(SAMLConstants.SAML2_POST_BINDING_URI);
+            authnRequest.setAssertionConsumerServiceURL(consumerServiceUrl);
+            if (attributeName.equals("ID")) {
+                if (attributeValue != null) {
+                    authnRequest.setID(attributeValue + OpenSAMLUtils.generateSecureRandomId());
+                }
+            } else {
+                authnRequest.setID(OpenSAMLUtils.generateSecureRandomId());
+            }
+            if (attributeName.equals("Issuer")) {
+                if (attributeValue != null) {
+                    authnRequest.setIssuer(buildIssuer(attributeValue.toString()));
+                }
+            } else {
+                authnRequest.setIssuer(buildIssuer(issuerValue));
+            }
+            if (attributeName.equals("NameIDPolicy")) {
+                if (attributeValue != null) {
+                    authnRequest.setNameIDPolicy(buildNameIdPolicy(attributeValue.toString()));
+                }
+            } else {
+                if (nameId != null && !nameId.isBlank()) {
+                    authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
+                }
+            }
+            authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
+            if (attributeName.equals("SPType")) {
+                if (attributeValue != null) {
+                    authnRequest.setExtensions(buildExtensions(attributeValue.toString()));
+                } else {
+                    authnRequest.setExtensions(buildEmptyExtensionsWithoutSPType());
+                }
+            } else {
+                authnRequest.setExtensions(buildExtensions(spType));
+            }
+            if (attributeName.equals("Signature")) {
+                if (attributeValue != null) {
+                    authnRequest.setSignature(anotherSignature);
+                    XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
+                    Signer.signObject(anotherSignature);
+                }
+            } else {
+                authnRequest.setSignature(signature);
+                XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
+                Signer.signObject(signature);
+            }
+
+            return authnRequest;
+        } catch (Exception e) {
+            throw new RuntimeException("SAML error:" + e.getMessage(), e);
+        }
+    }
+
     public AuthnRequest buildAuthnRequestParamsWithUnsupportedAttribute(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
         try {
             Signature signature = prepareSignature(signCredential);
@@ -155,6 +260,13 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         spType.setTextContent(spTypeExtension);
         extensions.getUnknownXMLObjects().add(spType);
 
+        XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
+        extensions.getUnknownXMLObjects().add(requestedAttributes);
+        return extensions;
+    }
+
+    private Extensions buildEmptyExtensionsWithoutSPType() {
+        Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
         XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
         extensions.getUnknownXMLObjects().add(requestedAttributes);
         return extensions;
