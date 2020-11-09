@@ -51,7 +51,7 @@ class Requests {
     }
 
     @Step("Open authentication page")
-    static Response getAuthenticationPage(Flow flow, String requestType, String samlRequest, String additionalParam = "salt", String additionalParamValue = "lqx") {
+    static Response startAuthentication(Flow flow, String requestType, String samlRequest, String additionalParam = "salt", String additionalParamValue = "lqx") {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
@@ -68,7 +68,7 @@ class Requests {
     }
 
     @Step("Open authentication page with duplicate params")
-    static Response getAuthenticationPageWithDuplicateParams(Flow flow, String requestType, String samlRequest, String additionalParam = "salt", String additionalParamValue = "lqx") {
+    static Response startAuthenticationWithDuplicateParams(Flow flow, String requestType, String samlRequest, String additionalParam = "salt", String additionalParamValue = "lqx") {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
@@ -86,7 +86,7 @@ class Requests {
     }
 
     @Step("Open authentication page with parameters")
-    static Response getAuthenticationPageWithParameters(Flow flow, String requestType, Map hashMap) {
+    static Response startAuthenticationWithParameters(Flow flow, String requestType, Map hashMap) {
         Response response =
                 given()
                         .filter(flow.cookieFilter)

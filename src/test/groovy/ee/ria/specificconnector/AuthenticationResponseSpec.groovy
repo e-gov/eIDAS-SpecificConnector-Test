@@ -42,16 +42,16 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         expect:
         String expiredEncodedToken = "c3BlY2lmaWNDb21tdW5pY2F0aW9uRGVmaW5pdGlvbkNvbm5lY3RvclJlc3BvbnNlfGM4NGE4NGUyLWRhNmQtNGFkMi1hNGIwLWEwNWMzMDA2MTJiYnwyMDIwLTExLTA1IDAwOjIwOjM3IDcwOXxKdGtoVFlJYXZjMy9sU3ZjZm8yM2xSOGxabUpzQ2xELzlwQVZQYzJ2c1FnPQ=="
         Response response = Requests.getAuthorizationResponseFromEidasWithSomeUnusedParams(flow, method, flow.domesticConnector.fullEidasResponseUrl, expiredEncodedToken, paramName)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
+        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
         assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo(message))
 
         where:
-        method            || paramName || statusCode || message
-        REQUEST_TYPE_POST || "old"     || 400        || "Token is invalid or has expired"
-        REQUEST_TYPE_GET  || "delay"   || 400        || "Token is invalid or has expired"
-        REQUEST_TYPE_GET  || "token"   || 400        || "Duplicate request parameter 'token'"
+        method            | paramName || statusCode || message
+        REQUEST_TYPE_POST | "old"     || 400        || "Token is invalid or has expired"
+        REQUEST_TYPE_GET  | "delay"   || 400        || "Token is invalid or has expired"
+        REQUEST_TYPE_GET  | "token"   || 400        || "Duplicate request parameter 'token'"
     }
 
 }

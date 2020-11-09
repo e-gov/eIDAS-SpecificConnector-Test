@@ -10,6 +10,8 @@ import spock.lang.Unroll
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertThat
 import org.apache.commons.lang.RandomStringUtils
+import java.nio.charset.StandardCharsets
+import static org.junit.Assert.assertTrue
 
 
 class AuthenticationSpec extends EEConnectorSpecification {
@@ -35,7 +37,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
 
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_POST, samlRequest)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertThat(response.getStatusCode(), Matchers.equalTo(200))
         String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
         String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
@@ -49,7 +51,6 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
 
         Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_POST, action, token)
-        response3.getStatusCode()
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
 
@@ -88,7 +89,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
         String relayState = "ABC-" + RandomStringUtils.random(76, true, true)
 
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
         String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
 
@@ -97,7 +98,6 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
 
         Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_GET, action, token)
-        response3.getStatusCode()
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
 
@@ -133,8 +133,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_ENDPOINT")
     def "request authentication with multiple instances"() {
         expect:
-        Response response = Requests.getAuthenticationPageWithDuplicateParams(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
+        Response response = Requests.startAuthenticationWithDuplicateParams(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
+        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo(message))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
@@ -156,23 +156,22 @@ class AuthenticationSpec extends EEConnectorSpecification {
         def map1 = SamlUtils.setUrlParameter(map, param1, samlRequest)
         def map2 = SamlUtils.setUrlParameter(map, param2, param2Value)
         def map3 = SamlUtils.setUrlParameter(map, param3, param3Value)
-        def map4 = SamlUtils.setUrlParameter(map, param4, param4Value)
 
-        Response response = Requests.getAuthenticationPageWithParameters(flow, REQUEST_TYPE_POST, map)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
+        Response response = Requests.startAuthenticationWithParameters(flow, REQUEST_TYPE_POST, map)
+        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
 
         where:
-        param1        || param2 || param2Value || param3 || param3Value || param4 || param4Value || statusCode || message
-        _             || _ || _ || _ || _ || _  || _ || 400 || "Required String parameter 'SAMLRequest' is not present"
-        "SAMLRequest" || _ || _ || _ || _ || _  || _ || 400 || "Required String parameter 'country' is not present"
-        "SAMLRequest" || "country" || _ || _ || _ || _  || _ || 400 || "post.country: must match "
-        "SAMLRequest" || "country" || "CAA" || _ || _ || _  || _ || 400 || "post.country: must match "
-        "SAMLRequest" || "country" || "CA" || "RelayState" || "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1" || _  || _ || 400 || "post.RelayState: must match"
-        "SAMLRequest" || "country" || "CA" || "RelayState" || "\b\f" || _  || _ || 400 || "post.RelayState: must match"
-        _             || "SAMLRequest" || "Ää" || "country" || "CA" || _  || _ || 400 || "Invalid saml request format"
+        param1        | param2        | param2Value | param3       | param3Value                                                                         || statusCode || message
+        _             | _             | _           | _            | _                                                                                   || 400        || "Required String parameter 'SAMLRequest' is not present"
+        "SAMLRequest" | _             | _           | _            | _                                                                                   || 400        || "Required String parameter 'country' is not present"
+        "SAMLRequest" | "country"     | _           | _            | _                                                                                   || 400        || "post.country: must match "
+        "SAMLRequest" | "country"     | "CAA"       | _            | _                                                                                   || 400        || "post.country: must match "
+        "SAMLRequest" | "country"     | "CA"        | "RelayState" | "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1" || 400        || "post.RelayState: must match"
+        "SAMLRequest" | "country"     | "CA"        | "RelayState" | "\b\f"                                                                              || 400        || "post.RelayState: must match"
+        _             | "SAMLRequest" | "Ää"        | "country"    | "CA"                                                                                || 400        || "Invalid saml request format"
     }
 
     @Unroll
@@ -180,7 +179,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with invalid service provider"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithInvalidIssuer(flow, "eidas-eeserviceprovider")
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - issuer not allowed"))
@@ -192,7 +191,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with missing attributes"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithoutExtensions(flow, "eidas-eeserviceprovider")
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - no requested attributes"))
@@ -204,7 +203,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with unsupported attribute"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithUnsupportedAttribute(flow, "eidas-eeserviceprovider")
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - unsupported requested attributes"))
@@ -216,8 +215,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with invalid signing certificate #credential.entityId"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithInvalidCredential(flow, "eidas-eeserviceprovider", credential)
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - invalid signature"))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
@@ -232,10 +231,10 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("AUTHENTICATION_REQUEST_VALIDATION")
-    def "request authentication with invalid saml request. #attributeName"() {
+    def "request authentication GET with invalid saml request. #attributeName"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
@@ -243,25 +242,61 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
         // TODO correct messages here when API fixed
         where:
-        attributeName  || attributeValue                                          || message
-        "IsPassive"    || _                                                       || "SAML request is invalid IsPassive"
-        "IsPassive"    || true                                                    || "SAML request is invalid IsPassive"
-        "Destination"  || _                                                       || "SAML request is invalid Destination"
-        "Destination"  || "https://example.net/SpecificConnector/ServiceProvider" || "SAML request is invalid Destination"
-        "ForceAuthn"   || _                                                       || "SAML request is invalid ForceAuthn"
-        "ForceAuthn"   || false                                                   || "SAML request is invalid ForceAuthn"
-        "ID"           || _                                                       || "SAML request is invalid - does not conform to schema"
-        "ID"           || "31"                                                    || "SAML request is invalid - does not conform to schema"
-        "IssueInstant" || _                                                       || "SAML request is invalid - does not conform to schema"
-        "IssueInstant" || "2030-11-08T19:29:47.759Z"                              || "SAML request is invalid"
-        "Version"      || _                                                       || "SAML request is invalid @Version"
-        "Version"      || "3.0"                                                   || "SAML request is invalid @Version"
-        "Issuer"       || _                                                       || "SAML request is invalid saml2:Issuer"
-        "Issuer"       || "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
-        "Signature"    || _                                                       || "SAML request is invalid - invalid signature"
-        "Signature"    || "value"                                                 || "SAML request is invalid - invalid signature"
-        "SPType"       || "voluntary"                                             || "SAML request is invalid - does not conform to schema"
-        "NameIDPolicy" || "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
+        attributeName  | attributeValue                                          || message
+        "IsPassive"    | _                                                       || "SAML request is invalid IsPassive"
+        "IsPassive"    | true                                                    || "SAML request is invalid IsPassive"
+        "Destination"  | _                                                       || "SAML request is invalid Destination"
+        "Destination"  | "https://example.net/SpecificConnector/ServiceProvider" || "SAML request is invalid Destination"
+        "ForceAuthn"   | _                                                       || "SAML request is invalid ForceAuthn"
+        "ForceAuthn"   | false                                                   || "SAML request is invalid ForceAuthn"
+        "ID"           | _                                                       || "SAML request is invalid - does not conform to schema"
+        "ID"           | "31"                                                    || "SAML request is invalid - does not conform to schema"
+        "IssueInstant" | _                                                       || "SAML request is invalid - does not conform to schema"
+        "IssueInstant" | "2030-11-08T19:29:47.759Z"                              || "SAML request is invalid"
+        "Version"      | _                                                       || "SAML request is invalid @Version"
+        "Version"      | "3.0"                                                   || "SAML request is invalid @Version"
+        "Issuer"       | _                                                       || "SAML request is invalid saml2:Issuer"
+        "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
+        "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
+        "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
+        "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
+        "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
+        "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REQUEST_VALIDATION")
+    def "request authentication POST with invalid saml request. #attributeName"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
+        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
+        assertEquals("Correct content type", "application/json", response.getContentType())
+        assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+
+        // TODO correct messages here when API fixed
+        where:
+        attributeName  | attributeValue                                          || message
+        "IsPassive"    | _                                                       || "SAML request is invalid IsPassive"
+        "IsPassive"    | true                                                    || "SAML request is invalid IsPassive"
+        "Destination"  | _                                                       || "SAML request is invalid Destination"
+        "Destination"  | "https://example.net/SpecificConnector/ServiceProvider" || "SAML request is invalid Destination"
+        "ForceAuthn"   | _                                                       || "SAML request is invalid ForceAuthn"
+        "ForceAuthn"   | false                                                   || "SAML request is invalid ForceAuthn"
+        "ID"           | _                                                       || "SAML request is invalid - does not conform to schema"
+        "ID"           | "31"                                                    || "SAML request is invalid - does not conform to schema"
+        "IssueInstant" | _                                                       || "SAML request is invalid - does not conform to schema"
+        "IssueInstant" | "2030-11-08T19:29:47.759Z"                              || "SAML request is invalid"
+        "Version"      | _                                                       || "SAML request is invalid @Version"
+        "Version"      | "3.0"                                                   || "SAML request is invalid @Version"
+        "Issuer"       | _                                                       || "SAML request is invalid saml2:Issuer"
+        "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
+        "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
+        "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
+        "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
+        "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
+        "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
     }
 
     @Unroll
@@ -269,14 +304,82 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with missing parameters #attributeName"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
-        Response response = Requests.getAuthenticationPage(flow, REQUEST_TYPE_GET, samlRequest)
+        print samlRequest.size()
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 200, response.statusCode())
 
         where:
-        attributeName  || attributeValue     || message
-        "ProviderName" || "illegal-provider" || "SAML request is invalid"
-        "SPType"       || _                  || "SAML request is invalid eidas:SPType"
-        "ProviderName" || _                  || "SAML request is invalid"
+        attributeName  | attributeValue
+        "ProviderName" | "illegal-provider"
+        "SPType"       | _
+        "ProviderName" | _
+        "ProviderName" | RandomStringUtils.random(94500, true, true)
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_SAMLREQUEST_CREATE_LIGHTTOKEN")
+    def "request authentication for LightToken"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String relayState = "CDE-" + RandomStringUtils.random(76, true, true)
+
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
+        String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
+
+        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_GET, samlRequest2, actionUrl)
+        assertEquals("Correct HTTP status code is returned", 200, response2.statusCode())
+        String encodedToken = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+        String[] lightToken = new String(Base64.getDecoder().decode(encodedToken), StandardCharsets.UTF_8).split("\\|")
+        assertEquals("Correct IssuerName in lightToken", "specificCommunicationDefinitionProxyserviceRequest", lightToken[0])
+        assertTrue(SamlUtils.isValidUUID(lightToken[1]))
+        assertTrue(SamlUtils.isValidDateTime(lightToken[2]))
+        assertThat(Base64.getDecoder().decode(lightToken[3]).size(), Matchers.equalTo(32))
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
+    def "request authentication redirect with LightToken and get"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String relayState = "CDE-" + RandomStringUtils.random(76, true, true)
+
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
+        String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
+
+        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_GET, samlRequest2, actionUrl)
+        assertEquals("Correct HTTP status code is returned", 200, response2.statusCode())
+        String redirectUrl = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
+        String encodedToken = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+
+        Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_GET, redirectUrl, encodedToken)
+        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
+    def "request authentication redirect with LightToken and post"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
+        assertThat(response.getStatusCode(), Matchers.equalTo(200))
+        String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
+        String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
+
+        Response response1 = Requests.sendLightTokenRequestToEidas(flow, lightTokenRequestUrl, lightTokenForRequest)
+        String samlRequest2 = response1.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value")
+        String actionUrl = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+
+        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_POST, samlRequest2, actionUrl)
+        String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
+        String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+
+        Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_POST, action, token)
+        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
 
     }
 }
