@@ -12,7 +12,7 @@ class Flow {
     DomesticConnector domesticConnector
     ForeignIdpProvider foreignIdpProvider
     CookieFilter cookieFilter
-    String lightToken
+    String token
     String nextEndpoint
     String requestMessage
 
@@ -22,7 +22,7 @@ class Flow {
         this.domesticConnector = new DomesticConnector(properties)
         this.domesticSpService = new DomesticSpService(properties)
         this.foreignIdpProvider = new ForeignIdpProvider(properties)
-        this.lightToken = ""
+        this.token = ""
         this.nextEndpoint = ""
         this.requestMessage = ""
     }

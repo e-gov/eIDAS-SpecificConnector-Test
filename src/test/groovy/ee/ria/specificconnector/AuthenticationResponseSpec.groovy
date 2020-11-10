@@ -5,6 +5,7 @@ import io.restassured.filter.cookie.CookieFilter
 import io.restassured.response.Response
 import org.hamcrest.Matchers
 import spock.lang.Unroll
+import org.opensaml.saml.saml2.core.Assertion
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertThat
@@ -21,6 +22,33 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         flow.domesticSpService.encryptionCredential = encryptionCredential
         flow.cookieFilter = new CookieFilter()
     }
+
+    @Unroll
+    @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
+    def "get authentication response get"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
+    def "get authentication response post"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+    }
+
 
     @Unroll
     @Feature("AUTHENTICATION_RESULT_LIGHTTOKEN_ACCEPTANCE")
