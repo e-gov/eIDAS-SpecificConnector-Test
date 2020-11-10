@@ -61,6 +61,7 @@ class Requests {
                         .param("country", "CA")
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
+                        .redirects().follow(false)
                         .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl)
                         .then()
                         .extract().response()

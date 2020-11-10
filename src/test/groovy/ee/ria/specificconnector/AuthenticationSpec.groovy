@@ -90,8 +90,10 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String relayState = "ABC-" + RandomStringUtils.random(76, true, true)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
-        String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
+        assertEquals("Correct HTTP status code is returned", 302, response.statusCode())
+        Response response1 = Steps.followRedirect(flow, response)
+        String actionUrl = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String samlRequest2 = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
 
         Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_GET, samlRequest2, actionUrl)
         String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
@@ -318,26 +320,28 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("AUTHENTICATION_SAMLREQUEST_CREATE_LIGHTTOKEN")
-    def "request authentication for LightToken"() {
+    @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
+    def "request authentication with LightToken and post"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
-        String relayState = "CDE-" + RandomStringUtils.random(76, true, true)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
+        assertEquals("Correct HTTP status code is returned", 200, response.statusCode())
+        String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
+        assertThat(lightTokenRequestUrl, Matchers.containsStringIgnoringCase("/EidasNode/SpecificConnectorRequest"))
+        String htmlBody = response.getBody().prettyPrint()
+        assertTrue(htmlBody.contains("</noscript>"))
 
-        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
-        String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
-
-        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_GET, samlRequest2, actionUrl)
-        assertEquals("Correct HTTP status code is returned", 200, response2.statusCode())
-        String encodedToken = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+        String encodedToken = response.body().htmlPath().get("**.find {it.@name == 'token'}.@value")
         String[] lightToken = new String(Base64.getDecoder().decode(encodedToken), StandardCharsets.UTF_8).split("\\|")
-        assertEquals("Correct IssuerName in lightToken", "specificCommunicationDefinitionProxyserviceRequest", lightToken[0])
+        assertEquals("Correct IssuerName in lightToken", "specificCommunicationDefinitionConnectorRequest", lightToken[0])
         assertTrue(SamlUtils.isValidUUID(lightToken[1]))
         assertTrue(SamlUtils.isValidDateTime(lightToken[2]))
         assertThat(Base64.getDecoder().decode(lightToken[3]).size(), Matchers.equalTo(32))
+        assertEquals("Correct Content-Type is returned", "text/html;charset=UTF-8", response.getContentType())
     }
 
     @Unroll
+    @Feature("AUTHENTICATION_SAMLREQUEST_CREATE_LIGHTTOKEN")
     @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
     def "request authentication redirect with LightToken and get"() {
         expect:
@@ -345,41 +349,17 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String relayState = "CDE-" + RandomStringUtils.random(76, true, true)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
-        String actionUrl = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String samlRequest2 = response.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
+        assertEquals("Correct HTTP status code is returned", 302, response.statusCode())
+        URL locationUrl = response.then().extract().response().getHeader("location").toURL()
+        String[] locationQuery = locationUrl.getQuery().split("=")
+        assertEquals("Correct location attribute name", "token", locationQuery[0])
+        assertThat(locationUrl.getPath(), Matchers.containsStringIgnoringCase("/EidasNode/SpecificConnectorRequest"))
 
-        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_GET, samlRequest2, actionUrl)
-        assertEquals("Correct HTTP status code is returned", 200, response2.statusCode())
-        String redirectUrl = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
-        String encodedToken = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
-
-        Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_GET, redirectUrl, encodedToken)
-        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
+        String[] lightToken = new String(Base64.getDecoder().decode(locationQuery[1]), StandardCharsets.UTF_8).split("\\|")
+        assertEquals("Correct IssuerName in lightToken", "specificCommunicationDefinitionConnectorRequest", lightToken[0])
+        assertTrue(SamlUtils.isValidUUID(lightToken[1]))
+        assertTrue(SamlUtils.isValidDateTime(lightToken[2]))
+        assertThat(Base64.getDecoder().decode(lightToken[3]).size(), Matchers.equalTo(32))
     }
 
-    @Unroll
-    @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
-    def "request authentication redirect with LightToken and post"() {
-        expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
-
-        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
-        assertThat(response.getStatusCode(), Matchers.equalTo(200))
-        String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
-        String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
-
-        Response response1 = Requests.sendLightTokenRequestToEidas(flow, lightTokenRequestUrl, lightTokenForRequest)
-        String samlRequest2 = response1.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value")
-        String actionUrl = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-
-        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_POST, samlRequest2, actionUrl)
-        String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
-        String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
-
-        Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_POST, action, token)
-        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
-
-    }
 }
