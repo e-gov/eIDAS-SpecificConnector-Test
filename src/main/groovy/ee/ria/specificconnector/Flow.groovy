@@ -94,6 +94,7 @@ class DomesticSpService {
     Credential expiredCredential
     Credential unsupportedCredential
     Credential unsupportedByConfigurationCredential
+    String samlRequestId
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"

@@ -161,14 +161,14 @@ class Requests {
     }
 
     @Step("IdP authorization")
-    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson) {
+    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson, String idpUsername = "xavi", String idpPassword = "creus") {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
                         .formParam("smsspToken", smsspToken)
-                        .formParam("username", "xavi")
-                        .formParam("password", "creus")
+                        .formParam("username", idpUsername)
+                        .formParam("password", idpPassword)
                         .formParam("eidasloa", "E")
                         .formParam("eidasnameid", "persistent")
                         .formParam("callback", flow.foreignProxyService.fullCallbackUrl)

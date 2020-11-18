@@ -24,6 +24,7 @@ class Steps {
                 flow.domesticSpService.fullMetadataUrl,
                 loa, comparison, nameIdFormat, spType)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
+        flow.domesticSpService.samlRequestId = request.getID()
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
         SamlSignatureUtils.validateSamlReqSignature(stringResponse)
@@ -135,7 +136,7 @@ class Steps {
     }
 
     @Step("Continue authentication on abroad")
-    static void continueAuthenticationFlow(Flow flow, String requestType) {
+    static void continueAuthenticationFlow(Flow flow, String requestType, String idpUsername = "xavi", idpPassword = "creus" ) {
         Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
         String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
         String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
@@ -147,7 +148,7 @@ class Steps {
         String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
         String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
 
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson)
+        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword)
         String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
 
