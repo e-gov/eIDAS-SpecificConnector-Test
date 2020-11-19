@@ -122,6 +122,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
+    @Feature("SAML_ASSERTION_VALID_TO")
     def "validate authentication response assertion post"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
@@ -151,7 +152,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct InResponseTo in assertion returned", flow.domesticSpService.samlRequestId, samlAssertionInResponseTo)
         def duration = ZonedDateTime.parse(samlAssertion.getIssueInstant().toString(), DateTimeFormatter.ISO_DATE_TIME) >> ZonedDateTime.parse(samlAssertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().getNotOnOrAfter().toString(), DateTimeFormatter.ISO_DATE_TIME)
 
-        assertTrue("Correct NotOnOrAfter in assertion returned", Math.abs(duration.seconds) < 330 )
+        assertTrue("Correct NotOnOrAfter in assertion returned", Math.abs(duration.seconds) == 300)
         assertEquals("Correct Assertion return URL", flow.domesticSpService.fullReturnUrl.toString(), samlAssertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().getRecipient())
         assertEquals("Correct conditions notBefore", responseIssueInstant, samlAssertion.getConditions().getNotBefore().toString())
         assertEquals("Correct conditions NotOnOrAfter", samlAssertion.getIssueInstant().plusMinutes(5).toString(), samlAssertion.getConditions().notOnOrAfter.toString())
