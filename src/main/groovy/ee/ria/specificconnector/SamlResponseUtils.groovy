@@ -23,9 +23,9 @@ class SamlResponseUtils {
     }
 
     static String decodeSamlResponse(Response response) {
-        String urlEncodedSAMLresponse = response.getHeader("location").toURL().getQuery().split("=")[1];
+        String urlEncodedSAMLresponse = response.getHeader("location").toURL().getQuery().split("&")[0].split("=")[1];
         String SAMLresponseToAssert = URLDecoder.decode(urlEncodedSAMLresponse, "UTF-8");
-        return new String(Base64.getDecoder().decode(SAMLresponseToAssert.split("=")[0]), StandardCharsets.UTF_8);
+        return new String(Base64.getDecoder().decode(SAMLresponseToAssert), StandardCharsets.UTF_8);
     }
 
     static Assertion decryptSamlAssertion(String xmlSamlResponse, Credential encryptionCredential) {

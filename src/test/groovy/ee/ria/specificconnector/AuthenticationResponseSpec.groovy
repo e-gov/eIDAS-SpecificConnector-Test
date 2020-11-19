@@ -27,6 +27,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     def setup() {
         flow.domesticSpService.signatureCredential = signatureCredential
         flow.domesticSpService.encryptionCredential = encryptionCredential
+        flow.domesticConnector.connectorSigningCertificate = connectorSigningCertificate
         flow.cookieFilter = new CookieFilter()
     }
 
@@ -190,4 +191,36 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         REQUEST_TYPE_GET  | "token"   || 400        || "Duplicate request parameter 'token'"
     }
 
+    @Unroll
+    @Feature("SAML_RESPONSE_SIGNING")
+    def "saml response signed with correct key"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+        String samlResponseXML = SamlResponseUtils.decodeSamlResponse(authenticationResponse)
+        SamlSignatureUtils.validateSignature(samlResponseXML, connectorSigningCertificate)
+        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
+        String algorithm = xmlPath.getString("Response.Signature.SignedInfo.SignatureMethod.@Algorithm")
+        assertEquals("Correct assertion signing Algoritm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", algorithm)
+    }
+
+    @Unroll
+    @Feature("SAML_ASSERTION_SIGNING")
+    def "saml response assertion signed with correct key"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+        SamlSignatureUtils.validateSignature(samlAssertion.getSignature(), connectorSigningCertificate)
+        assertEquals("Correct assertion signing Algoritm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", samlAssertion.getSignature().getSignatureAlgorithm())
+    }
 }

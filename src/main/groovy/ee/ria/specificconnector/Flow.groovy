@@ -3,6 +3,7 @@ package ee.ria.specificconnector
 import groovy.transform.Canonical
 import io.restassured.filter.cookie.CookieFilter
 import org.opensaml.security.credential.Credential
+import java.security.cert.X509Certificate
 
 @Canonical
 class Flow {
@@ -62,6 +63,7 @@ class DomesticConnector {
     String eidasResponseUrl
     String authenticationRequestUrl
     String eidasColleagueResponseUrl
+    X509Certificate connectorSigningCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"

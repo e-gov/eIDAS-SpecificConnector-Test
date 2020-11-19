@@ -12,6 +12,7 @@ import spock.lang.Specification
 import java.nio.file.Paths
 import java.security.KeyStore
 import java.security.Security
+import java.security.cert.X509Certificate
 
 class EEConnectorSpecification extends Specification {
     @Shared
@@ -28,6 +29,8 @@ class EEConnectorSpecification extends Specification {
     Credential unsupportedCredential
     @Shared
     Credential unsupportedByConfigurationCredential
+    @Shared
+    X509Certificate connectorSigningCertificate
 
     def setupSpec() {
         InitializationService.initialize()
@@ -154,6 +157,23 @@ class EEConnectorSpecification extends Specification {
                 }
             }
             unsupportedByConfigurationCredential = KeystoreUtils.getCredential(unsupportedByConfigurationKeystore, props."ee-spservice.test.keystore.unsupportedByConfigurationKeyId" as String, props."ee-spservice.test.keystore.unsupportedByConfigurationKeyPassword" as String)
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Something went wrong initializing credentials:", e)
+        }
+
+        try {
+            KeyStore responseSigningKeystore = KeyStore.getInstance("PKCS12")
+            if (envFile) {
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-connector.keystore.file")).withInputStream {
+                    responseSigningKeystore.load(it, props.get("ee-connector.keystore.password").toString().toCharArray())
+                }
+            } else {
+                this.getClass().getResource("/${props."ee-connector.keystore.file"}").withInputStream {
+                    responseSigningKeystore.load(it, props.get("ee-connector.keystore.password").toString().toCharArray())
+                }
+            }
+            connectorSigningCertificate = (X509Certificate) responseSigningKeystore.getCertificate(props."ee-connector.keystore.responseSigningKeyId".toString());
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)

@@ -12,6 +12,7 @@ import org.opensaml.security.x509.X509Support;
 import org.opensaml.xmlsec.encryption.support.DecryptionException;
 import org.opensaml.xmlsec.encryption.support.InlineEncryptedKeyResolver;
 import org.opensaml.xmlsec.keyinfo.impl.StaticKeyInfoCredentialResolver;
+import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureValidator;
 
@@ -21,12 +22,16 @@ import java.security.cert.CertificateNotYetValidException;
 
 public class SamlSignatureUtils {
 
-    protected static void validateSignature(String body, java.security.cert.X509Certificate x509) {
+    public static void validateSignature(String body, java.security.cert.X509Certificate x509) {
+        SignableSAMLObject signableObj = XmlUtils.unmarshallElement(body);
+        validateSignature(signableObj.getSignature(), x509);
+    }
+
+    public static void validateSignature(Signature signature, java.security.cert.X509Certificate x509) {
         try {
             x509.checkValidity();
-            SignableSAMLObject signableObj = XmlUtils.unmarshallElement(body);
             X509Credential credential = CredentialSupport.getSimpleCredential(x509, null);
-            SignatureValidator.validate(signableObj.getSignature(), credential);
+            SignatureValidator.validate(signature, credential);
         } catch (SignatureException e) {
             throw new RuntimeException("Signature validation in validateSignature() failed: " + e.getMessage(), e);
         } catch (CertificateNotYetValidException e) {
