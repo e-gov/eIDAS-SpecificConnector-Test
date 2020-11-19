@@ -97,6 +97,7 @@ class DomesticSpService {
     Credential unsupportedCredential
     Credential unsupportedByConfigurationCredential
     String samlRequestId
+    X509Certificate encryptionCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"

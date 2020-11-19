@@ -22,6 +22,8 @@ class EEConnectorSpecification extends Specification {
     @Shared
     Credential encryptionCredential
     @Shared
+    X509Certificate encryptionCertificate
+    @Shared
     Credential metadataCredential
     @Shared
     Credential expiredCredential
@@ -88,7 +90,7 @@ class EEConnectorSpecification extends Specification {
                 }
             }
             encryptionCredential = KeystoreUtils.getCredential(encryptionKeystore, props."ee-spservice.keystore.samlAssertionDecryptKey" as String, props."ee-spservice.keystore.samlAssertionDecryptPassword" as String)
-
+            encryptionCertificate = (X509Certificate) encryptionKeystore.getCertificate(props."ee-connector.keystore.responseSigningKeyId".toString());
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)

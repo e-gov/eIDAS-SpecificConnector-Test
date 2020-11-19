@@ -24,7 +24,7 @@ class Requests {
                 .extract().body().asString()
     }
 
-    @Step("Get metadata response")
+    @Step("Get domestic connector metadata response")
     static ValidatableResponse getMetadataResponse(Flow flow) {
         return given()
                 .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8")))
@@ -36,6 +36,18 @@ class Requests {
                 .statusCode(200)
     }
 
+    @Step("Get domestic service provider metadata response")
+    static String getSPMetadataBody(Flow flow) {
+        return given()
+                .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8")))
+                .relaxedHTTPSValidation()
+                .filter(new AllureRestAssured())
+                .when()
+                .get(flow.domesticSpService.fullMetadataUrl)
+                .then()
+                .statusCode(200)
+                .extract().body().asString()
+    }
 
     @Step("Get heartbeat")
     static Response getHeartbeat(Flow flow) {

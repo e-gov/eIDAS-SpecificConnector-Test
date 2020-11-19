@@ -9,7 +9,10 @@ import org.hamcrest.Matchers
 import io.restassured.matcher.RestAssuredMatchers
 import spock.lang.Unroll
 import org.opensaml.saml.saml2.core.Assertion
-import org.apache.commons.validator.routines.InetAddressValidator;
+import org.apache.commons.validator.routines.InetAddressValidator
+
+import java.security.cert.X509Certificate;
+import org.opensaml.security.x509.X509Support;
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -28,6 +31,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         flow.domesticSpService.signatureCredential = signatureCredential
         flow.domesticSpService.encryptionCredential = encryptionCredential
         flow.domesticConnector.connectorSigningCertificate = connectorSigningCertificate
+        flow.domesticSpService.encryptionCertificate = encryptionCertificate
         flow.cookieFilter = new CookieFilter()
     }
 
@@ -222,5 +226,23 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         SamlSignatureUtils.validateSignature(samlAssertion.getSignature(), connectorSigningCertificate)
         assertEquals("Correct assertion signing Algoritm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", samlAssertion.getSignature().getSignatureAlgorithm())
+    }
+
+    @Unroll
+    @Feature("SAML_ASSERTION_ENCRYPTION")
+    def "saml response assertion is encrypted"() {
+        expect:
+        String spMetadataXml = Requests.getSPMetadataBody(flow)
+        XmlPath xmlPath = new XmlPath(spMetadataXml)
+        String encryptionCertificate = xmlPath.getString("EntityDescriptor.SPSSODescriptor.KeyDescriptor[1].KeyInfo.X509Data.X509Certificate")
+        X509Certificate x509Encryption = X509Support.decodeCertificate(encryptionCertificate)
+      //  assertEquals("Correct encryption certificate", x509Encryption, flow.domesticSpService.encryptionCertificate)
+
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
     }
 }
