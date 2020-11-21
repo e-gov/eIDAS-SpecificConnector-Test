@@ -142,6 +142,20 @@ class Requests {
                 .extract().response()
     }
 
+    @Step("send samlResponse to service provider")
+    static Response sendResponseToSP(Flow flow, String samlResponse, String relayState, String returnUrl) {
+        return given()
+                .filter(flow.cookieFilter)
+                .filter(new AllureRestAssured())
+                .formParam("SAMLResponse", samlResponse)
+                .formParam("RelayState", relayState)
+                .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                .when()
+                .post(returnUrl)
+                .then()
+                .extract().response()
+    }
+
     @Step("Colleague Request")
     static Response colleagueRequest(Flow flow, String requestType, String samlRequest, String url) {
         Response response =

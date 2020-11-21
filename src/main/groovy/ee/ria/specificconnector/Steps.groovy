@@ -167,7 +167,13 @@ class Steps {
         flow.nextEndpoint = response9.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
     }
 
-
+    @Step("Send authentication response to service provider")
+    static Response sendAuthenticationResponseToSP(Flow flow, Response response) {
+        String returnUrl = response.body().htmlPath().getString("**.find { it.@method == 'post' }.@action")
+        String samlResponse = response.body().htmlPath().getString("**.find { it.@name == 'SAMLResponse' }.@value")
+        String relayState = response.body().htmlPath().getString("**.find { it.@name == 'RelayState' }.@value")
+        return Requests.sendResponseToSP(flow, samlResponse, relayState, returnUrl)
+    }
 
     @Step("Follow redirect")
     static Response followRedirect(Flow flow, Response response) {

@@ -246,4 +246,20 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
     }
+
+    @Unroll
+    @Feature("FORWARD_SPECIFIC_RESPONSE_TO_SP")
+    def "saml response forwarded to service provider"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Requests.followRedirect(flow, flow.domesticSpService.fullLoginUrl.toString() + "?Country=CA")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+        Response spResponse = Steps.sendAuthenticationResponseToSP(flow, authenticationResponse)
+        assertThat(spResponse.body().jsonPath().get("attributes.PersonIdentifier").toString(), Matchers.equalTo("CA/EE/12345"))
+    }
 }
