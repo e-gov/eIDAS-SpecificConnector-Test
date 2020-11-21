@@ -64,6 +64,7 @@ class DomesticConnector {
     String authenticationRequestUrl
     String eidasColleagueResponseUrl
     X509Certificate connectorSigningCertificate
+    X509Certificate spRequestSigningCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
@@ -90,7 +91,6 @@ class DomesticSpService {
     String protocol
     String returnUrl
     String metadataUrl
-    String loginUrl
     Credential signatureCredential
     Credential encryptionCredential
     Credential metadataCredential
@@ -102,7 +102,6 @@ class DomesticSpService {
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"
-    @Lazy fullLoginUrl = "${protocol}://${host}:${port}${loginUrl}"
 
     DomesticSpService(Properties properties) {
         this.host = properties."ee-spservice.host"
@@ -110,7 +109,6 @@ class DomesticSpService {
         this.protocol = properties."ee-spservice.protocol"
         this.returnUrl = properties."ee-spservice.returnUrl"
         this.metadataUrl = properties."ee-spservice.metadataUrl"
-        this.loginUrl = properties."ee-spservice.loginUrl"
     }
 }
 

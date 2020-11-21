@@ -33,6 +33,8 @@ class EEConnectorSpecification extends Specification {
     Credential unsupportedByConfigurationCredential
     @Shared
     X509Certificate connectorSigningCertificate
+    @Shared
+    X509Certificate spRequestSigningCertificate
 
     def setupSpec() {
         InitializationService.initialize()
@@ -176,6 +178,23 @@ class EEConnectorSpecification extends Specification {
                 }
             }
             connectorSigningCertificate = (X509Certificate) responseSigningKeystore.getCertificate(props."ee-connector.keystore.responseSigningKeyId".toString());
+        }
+        catch (Exception e) {
+            throw new RuntimeException("Something went wrong initializing credentials:", e)
+        }
+
+        try {
+            KeyStore spResponseSigningKeystore = KeyStore.getInstance("PKCS12")
+            if (envFile) {
+                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-connector.truststore.file")).withInputStream {
+                    spResponseSigningKeystore.load(it, props.get("ee-connector.truststore.password").toString().toCharArray())
+                }
+            } else {
+                this.getClass().getResource("/${props."ee-connector.truststore.file"}").withInputStream {
+                    spResponseSigningKeystore.load(it, props.get("ee-connector.truststore.password").toString().toCharArray())
+                }
+            }
+            spRequestSigningCertificate = (X509Certificate) spResponseSigningKeystore.getCertificate(props."ee-connector.truststore.spRequestSigningKeyId".toString());
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
