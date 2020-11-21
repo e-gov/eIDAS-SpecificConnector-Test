@@ -64,7 +64,6 @@ class DomesticConnector {
     String authenticationRequestUrl
     String eidasColleagueResponseUrl
     X509Certificate connectorSigningCertificate
-    X509Certificate spRequestSigningCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
@@ -99,6 +98,8 @@ class DomesticSpService {
     Credential unsupportedByConfigurationCredential
     String samlRequestId
     X509Certificate encryptionCertificate
+    X509Certificate spMetadataSigningCertificate
+    X509Certificate spSigningCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"
