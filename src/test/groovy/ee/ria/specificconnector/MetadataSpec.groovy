@@ -10,6 +10,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertThat
 import spock.lang.Unroll
 
@@ -21,6 +22,7 @@ class MetadataSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("SP_METADATA_SIGNING")
+    @Feature("METADATA_REQUEST")
     def "Metadata has valid signature"() {
         expect:
         MetadataUtils.validateMetadataSignature(Requests.getMetadataBody(flow))
@@ -58,14 +60,40 @@ class MetadataSpec extends EEConnectorSpecification {
         expect:
         String metadataXml = Requests.getMetadataBody(flow)
         XmlPath xmlPath = new XmlPath(metadataXml)
-        String spType = xmlPath.get("EntityDescriptor.Extensions.SPType")
-        String organization = xmlPath.get("EntityDescriptor.Organization")
-        String support = xmlPath.get("**.find {it.@contactType == 'support'}")
-        String technical = xmlPath.get("**.find {it.@contactType == 'technical'}")
+        String spType = xmlPath.getString("EntityDescriptor.Extensions.SPType")
+        String organization = xmlPath.getString("EntityDescriptor.Organization")
+        String support = xmlPath.getString("**.find {it.@contactType == 'support'}")
+        String technical = xmlPath.getString("**.find {it.@contactType == 'technical'}")
 
         assertThat(spType, Matchers.equalTo("public"))
         assertThat(organization, Matchers.equalTo("Estonian Information System AuthorityRIAhttps://www.ria.ee"))
         assertThat(support, Matchers.equalTo("RIADeskHelphelp@ria.ee+372 663 0230"))
         assertThat(technical, Matchers.equalTo("RIADeskHelphelp@ria.ee+372 663 0230"))
+    }
+
+    @Unroll
+    @Feature("SP_METADATA_SUPPORTED_BINDINGS")
+    @Feature("SP_METADATA_SUPPORTED_ATTRIBUTES")
+    def "Metadata default attributes and bindings"() {
+        expect:
+        String metadataXml = Requests.getMetadataBody(flow)
+        XmlPath xmlPath = new XmlPath(metadataXml)
+        String postBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[0];
+        String redirectBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[1];
+        String postLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[0];
+        String redirectLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[1];
+        assertEquals("Correct post Binding attribute value", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", postBinding)
+        assertEquals("Correct redirect Binding attribute value", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect", redirectBinding)
+        assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrl.toString(), postLocation)
+        assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrl.toString(), redirectLocation)
+
+        String personIdentifier = xmlPath.getString("**.find {it.@FriendlyName == 'PersonIdentifier'}.@Name")
+        String familyName = xmlPath.getString("**.find {it.@FriendlyName == 'FamilyName'}.@Name")
+        String firstName = xmlPath.getString("**.find {it.@FriendlyName == 'FirstName'}.@Name")
+        String dateOfBirth = xmlPath.getString("**.find {it.@FriendlyName == 'DateOfBirth'}.@Name")
+        assertEquals("Correct PersonIdentifier SAML attribute", "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier", personIdentifier)
+        assertEquals("Correct FamilyName SAML attribute", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", familyName)
+        assertEquals("Correct FirstName SAML attribute", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", firstName)
+        assertEquals("Correct DateOfBirth SAML attribute", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", dateOfBirth)
     }
 }

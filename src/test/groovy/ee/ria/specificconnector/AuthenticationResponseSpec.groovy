@@ -168,6 +168,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("AUTHENTICATION_RESULT_LIGHTTOKEN_ACCEPTANCE")
+    @Feature("TECHNICAL_ERRORS")
     def "request authentication with invalid lightToken"() {
         expect:
         String invalidToken = "specificCommunicationDefinitionConnectorResponse|b45e99b0-afef-44dc-b299-6ede26e5b61b|2020-11-02 10:12:15 522|WarR5kd669/NZiysHeRtog90PAZ3dAXeusmss8/Bl3s="
@@ -182,6 +183,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Unroll
     @Feature("AUTHENTICATION_RESULT_ENDPOINT")
     @Feature("AUTHENTICATION_RESULT_LIGHTTOKEN_ACCEPTANCE")
+    @Feature("TECHNICAL_ERRORS")
     def "request authentication response with other parameters"() {
         expect:
         String expiredEncodedToken = "c3BlY2lmaWNDb21tdW5pY2F0aW9uRGVmaW5pdGlvbkNvbm5lY3RvclJlc3BvbnNlfGM4NGE4NGUyLWRhNmQtNGFkMi1hNGIwLWEwNWMzMDA2MTJiYnwyMDIwLTExLTA1IDAwOjIwOjM3IDcwOXxKdGtoVFlJYXZjMy9sU3ZjZm8yM2xSOGxabUpzQ2xELzlwQVZQYzJ2c1FnPQ=="
@@ -239,7 +241,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         XmlPath xmlPath = new XmlPath(spMetadataXml)
         String encryptionCertificate = xmlPath.getString("EntityDescriptor.SPSSODescriptor.KeyDescriptor[1].KeyInfo.X509Data.X509Certificate")
         X509Certificate x509Encryption = X509Support.decodeCertificate(encryptionCertificate)
-      //  assertEquals("Correct encryption certificate", x509Encryption, flow.domesticSpService.encryptionCertificate)
+        assertEquals("Correct encryption certificate", x509Encryption, flow.domesticSpService.encryptionCertificate)
 
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
