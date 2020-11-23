@@ -265,10 +265,12 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
         String samlResponse = SamlResponseUtils.decodeSamlResponseFromPost(authenticationResponse)
         XmlPath xmlPath = new XmlPath(samlResponse)
+        String inResponseTo = xmlPath.getString("Response.@InResponseTo")
         String statusCode = xmlPath.getString("Response.Status.StatusCode.@Value")
         String statusMessage = xmlPath.getString("Response.Status.StatusMessage")
         assertEquals("Correct SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:Responder", statusCode)
         assertEquals("Correct SAML status message is returned", "202019 - Incorrect Level of Assurance in IdP response", statusMessage)
+        assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
     }
 
     @Unroll
@@ -277,13 +279,15 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
-        String samlResponse = Steps.continueAuthenticationFlowDenyConsent(flow, REQUEST_TYPE_POST)
+        String samlResponse = SamlUtils.decodeBase64(Steps.continueAuthenticationFlowDenyConsent(flow, REQUEST_TYPE_POST))
         XmlPath xmlPath = new XmlPath(samlResponse)
+        String inResponseTo = xmlPath.getString("Response.@InResponseTo")
         String statusCode = xmlPath.getString("Response.Status.StatusCode.@Value")
         String secondLevelStatusCode = xmlPath.getString("Response.Status.StatusCode.StatusCode.@Value")
         String statusMessage = xmlPath.getString("Response.Status.StatusMessage")
         assertEquals("Correct SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:Responder", statusCode)
         assertEquals("Correct SAML status message is returned", "Citizen consent not given.", statusMessage)
         assertEquals("Correct second level SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:RequestDenied", secondLevelStatusCode)
+        assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
     }
 }
