@@ -9,6 +9,7 @@ import org.spockframework.lang.Wildcard
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import io.restassured.response.Response
 
 class SamlUtils {
 
@@ -82,4 +83,10 @@ class SamlUtils {
     static String decodeBase64(String encodedString) {
         return new String(Base64.getDecoder().decode(encodedString), StandardCharsets.UTF_8);
     }
+
+    static String getRelayStateFromResponseHeader(Response response) {
+        String[] relayState = response.getHeader("location").toURL().getQuery().split("&")[1].split("=")
+        return relayState[1]
+    }
+
 }

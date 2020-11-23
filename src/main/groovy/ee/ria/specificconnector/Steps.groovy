@@ -126,12 +126,14 @@ class Steps {
             Response getResponse = Steps.followRedirect(flow, response)
             flow.nextEndpoint = getResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
             flow.requestMessage = getResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
+            flow.relayState = getResponse.body().htmlPath().get("**.find {it.@id == 'relayState'}.@value")
         } else {
             String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
             String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
             Response postResponse = Requests.sendLightTokenRequestToEidas(flow, lightTokenRequestUrl, lightTokenForRequest)
             flow.nextEndpoint = postResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
             flow.requestMessage = postResponse.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value")
+            flow.relayState = postResponse.body().htmlPath().get("**.find {it.@id == 'relayState'}.@value")
         }
     }
 

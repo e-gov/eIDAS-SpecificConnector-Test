@@ -16,6 +16,7 @@ class Flow {
     String token
     String nextEndpoint
     String requestMessage
+    String relayState
 
     Flow(Properties properties) {
         this.properties = properties
@@ -26,6 +27,7 @@ class Flow {
         this.token = ""
         this.nextEndpoint = ""
         this.requestMessage = ""
+        this.relayState = ""
     }
 }
 

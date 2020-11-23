@@ -47,6 +47,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+        assertEquals("Correct RelayState value", flow.relayState, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
     }
 
     @Unroll
@@ -61,6 +62,8 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+        String relayState = authenticationResponse.body().htmlPath().get("**.find {it.@name == 'RelayState'}.@value")
+        assertEquals("Correct RelayState value", flow.relayState, relayState)
     }
 
     @Unroll
