@@ -138,8 +138,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
-        // TODO Uncomment if bug is fixed
-        //assertEquals("Correct ID is returned", flow.domesticSpService.samlRequestId, samlAssertion.getID())
+        assertTrue("Saml assertion ID exists", samlAssertion.getID().length() > 15)
 
         String samlResponseXML = SamlResponseUtils.decodeSamlResponseFromPost(authenticationResponse)
         XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
@@ -149,7 +148,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct Assertion Issuer Format", "urn:oasis:names:tc:SAML:2.0:nameid-format:entity", samlAssertion.getIssuer().getFormat())
         assertEquals("Correct Assertion Issuer", flow.domesticConnector.fullMetadataUrl.toString(), samlAssertion.getIssuer().getValue())
 
-       // assertEquals("Correct nameID", "0123456", samlAssertion.getSubject().getNameID().getValue())
+        assertEquals("Correct nameID", "0123456", samlAssertion.getSubject().getNameID().getValue())
         assertEquals("Correct subject confirmation method", "urn:oasis:names:tc:SAML:2.0:cm:bearer", samlAssertion.getSubject().getSubjectConfirmations().get(0).getMethod())
         String samlAssertionIPAddress = samlAssertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().getAddress()
         assertTrue("Correct IP address in assertion returned", InetAddressValidator.getInstance().isValidInet4Address(samlAssertionIPAddress))
