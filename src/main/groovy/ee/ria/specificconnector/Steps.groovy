@@ -138,7 +138,7 @@ class Steps {
     }
 
     @Step("Continue authentication on abroad")
-    static void continueAuthenticationFlow(Flow flow, String requestType, String idpUsername = "xavi", idpPassword = "creus" ) {
+    static void continueAuthenticationFlow(Flow flow, String requestType, String idpUsername = "xavi", idpPassword = "creus" , String eidasloa = "E") {
         Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
         String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
         String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
@@ -150,7 +150,7 @@ class Steps {
         String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
         String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
 
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword)
+        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword, eidasloa)
         String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
 
@@ -167,6 +167,66 @@ class Steps {
         Response response9 = Requests.colleagueResponse(flow, samlResponse)
         flow.token = response9.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
         flow.nextEndpoint = response9.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+    }
+
+    @Step("Continue authentication on abroad with errors")
+    static void continueAuthenticationFlowWithErrors(Flow flow, String requestType, String idpUsername = "xavi", idpPassword = "creus" , String eidasloa = "E") {
+        Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
+        String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
+        String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+
+        Response response3 = Requests.proxyServiceRequest(flow, requestType, action, token)
+        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
+        Response response4 = Requests.idpRequest(flow, requestType, action2, smsspRequest)
+        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
+        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
+
+        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword, eidasloa)
+        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
+
+        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
+        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+
+        Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
+        String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
+        String token2 = response7.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
+
+        Response response8 = Requests.proxyServiceRequest(flow, requestType, action5, token2)
+        String samlResponse = response8.body().htmlPath().get("**.find {it.@id == 'SAMLResponse'}.@value")
+
+        Response response9 = Requests.colleagueResponse(flow, samlResponse)
+        flow.token = response9.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
+        flow.nextEndpoint = response9.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+    }
+
+    @Step("Continue authentication on abroad deny consent")
+    static String continueAuthenticationFlowDenyConsent(Flow flow, String requestType) {
+        Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
+        String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
+        String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+
+        Response response3 = Requests.proxyServiceRequest(flow, requestType, action, token)
+        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
+        Response response4 = Requests.idpRequest(flow, requestType, action2, smsspRequest)
+        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
+        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
+
+        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson)
+        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
+
+        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
+        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+
+        Response response7 = Requests.denyConsentResponse(flow, binaryLightToken)
+        String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
+        String token2 = response7.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
+
+        Response response8 = Requests.proxyServiceRequest(flow, requestType, action5, token2)
+        return response8.body().htmlPath().getString("**.find {it.@id == 'ColleagueResponse_SAMLResponse'}.@value")
     }
 
     @Step("Follow redirect")

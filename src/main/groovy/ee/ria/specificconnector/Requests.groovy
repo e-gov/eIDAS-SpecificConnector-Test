@@ -185,7 +185,7 @@ class Requests {
     }
 
     @Step("IdP authorization")
-    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson, String idpUsername = "xavi", String idpPassword = "creus") {
+    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson, String idpUsername = "xavi", String idpPassword = "creus", String eidasloa = "E") {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
@@ -193,7 +193,7 @@ class Requests {
                         .formParam("smsspToken", smsspToken)
                         .formParam("username", idpUsername)
                         .formParam("password", idpPassword)
-                        .formParam("eidasloa", "E")
+                        .formParam("eidasloa", eidasloa)
                         .formParam("eidasnameid", "persistent")
                         .formParam("callback", flow.foreignProxyService.fullCallbackUrl)
                         .formParam("jSonRequestDecoded", smsspTokenRequestJson)
@@ -229,6 +229,22 @@ class Requests {
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
                         .formParam("binaryLightToken", binaryLightToken)
+                        .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
+                        .when()
+                        .post(flow.foreignProxyService.fullConsentUrl)
+                        .then()
+                        .extract().response()
+        return response
+    }
+
+    @Step("Deny Consent response")
+    static Response denyConsentResponse(Flow flow, String binaryLightToken) {
+        Response response =
+                given()
+                        .filter(flow.cookieFilter)
+                        .filter(new AllureRestAssured())
+                        .formParam("binaryLightToken", binaryLightToken)
+                        .formParam("cancel", "true")
                         .config(RestAssured.config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
                         .post(flow.foreignProxyService.fullConsentUrl)
