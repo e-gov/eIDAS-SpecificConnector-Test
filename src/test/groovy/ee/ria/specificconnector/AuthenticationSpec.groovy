@@ -173,7 +173,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "SAMLRequest" | "country"     | "CAA"       | _            | _                                                                                   || 400        || "post.country: must match "
         "SAMLRequest" | "country"     | "CA"        | "RelayState" | "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1" || 400        || "post.RelayState: must match"
         "SAMLRequest" | "country"     | "CA"        | "RelayState" | "\b\f"                                                                              || 400        || "post.RelayState: must match"
-        _             | "SAMLRequest" | "Ää"        | "country"    | "CA"                                                                                || 400        || "Invalid saml request format"
+        _             | "SAMLRequest" | "Ää"        | "country"    | "CA"                                                                                || 400        || "post.SAMLRequest: must match"
     }
 
     @Unroll
@@ -236,28 +236,25 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication GET with invalid saml request. #attributeName"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
+        // println(SamlUtils.decodeBase64(samlRequest))
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
 
-        // TODO correct messages here when API fixed
         where:
         attributeName  | attributeValue                                          || message
-        "IsPassive"    | _                                                       || "SAML request is invalid IsPassive"
-        "IsPassive"    | true                                                    || "SAML request is invalid IsPassive"
-        "Destination"  | _                                                       || "SAML request is invalid Destination"
-        "Destination"  | "https://example.net/SpecificConnector/ServiceProvider" || "SAML request is invalid Destination"
-        "ForceAuthn"   | _                                                       || "SAML request is invalid ForceAuthn"
-        "ForceAuthn"   | false                                                   || "SAML request is invalid ForceAuthn"
+        "IsPassive"    | _                                                       || "SAML request is invalid - expecting IsPassive to be false"
+        "IsPassive"    | true                                                    || "SAML request is invalid - expecting IsPassive to be false"
+        "ForceAuthn"   | _                                                       || "SAML request is invalid - expecting ForceAuthn to be true"
+        "ForceAuthn"   | false                                                   || "SAML request is invalid - expecting ForceAuthn to be true"
         "ID"           | _                                                       || "SAML request is invalid - does not conform to schema"
         "ID"           | "31"                                                    || "SAML request is invalid - does not conform to schema"
         "IssueInstant" | _                                                       || "SAML request is invalid - does not conform to schema"
-        "IssueInstant" | "2030-11-08T19:29:47.759Z"                              || "SAML request is invalid"
-        "Version"      | _                                                       || "SAML request is invalid @Version"
-        "Version"      | "3.0"                                                   || "SAML request is invalid @Version"
-        "Issuer"       | _                                                       || "SAML request is invalid saml2:Issuer"
+        "Version"      | _                                                       || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Version"      | "3.0"                                                   || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Issuer"       | _                                                       || "SAML request is invalid - missing issuer"
         "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
         "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
@@ -271,28 +268,25 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication POST with invalid saml request. #attributeName"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
+        // println(SamlUtils.decodeBase64(samlRequest))
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
         assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
         assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
 
-        // TODO correct messages here when API fixed
         where:
         attributeName  | attributeValue                                          || message
-        "IsPassive"    | _                                                       || "SAML request is invalid IsPassive"
-        "IsPassive"    | true                                                    || "SAML request is invalid IsPassive"
-        "Destination"  | _                                                       || "SAML request is invalid Destination"
-        "Destination"  | "https://example.net/SpecificConnector/ServiceProvider" || "SAML request is invalid Destination"
-        "ForceAuthn"   | _                                                       || "SAML request is invalid ForceAuthn"
-        "ForceAuthn"   | false                                                   || "SAML request is invalid ForceAuthn"
+        "IsPassive"    | _                                                       || "SAML request is invalid - expecting IsPassive to be false"
+        "IsPassive"    | true                                                    || "SAML request is invalid - expecting IsPassive to be false"
+        "ForceAuthn"   | _                                                       || "SAML request is invalid - expecting ForceAuthn to be true"
+        "ForceAuthn"   | false                                                   || "SAML request is invalid - expecting ForceAuthn to be true"
         "ID"           | _                                                       || "SAML request is invalid - does not conform to schema"
         "ID"           | "31"                                                    || "SAML request is invalid - does not conform to schema"
         "IssueInstant" | _                                                       || "SAML request is invalid - does not conform to schema"
-        "IssueInstant" | "2030-11-08T19:29:47.759Z"                              || "SAML request is invalid"
-        "Version"      | _                                                       || "SAML request is invalid @Version"
-        "Version"      | "3.0"                                                   || "SAML request is invalid @Version"
-        "Issuer"       | _                                                       || "SAML request is invalid saml2:Issuer"
+        "Version"      | _                                                       || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Version"      | "3.0"                                                   || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Issuer"       | _                                                       || "SAML request is invalid - missing issuer"
         "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
         "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
@@ -316,6 +310,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "SPType"       | _
         "ProviderName" | _
         "ProviderName" | RandomStringUtils.random(94500, true, true)
+        "IssueInstant" | "2030-11-08T19:29:47.759Z"
     }
 
     @Unroll
