@@ -68,6 +68,7 @@ class DomesticConnector {
     X509Certificate connectorSigningCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
+    @Lazy metadataUrlWithoutPort = "${protocol}://${host}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
     @Lazy fullheartbeatUrl = "${protocol}://${host}:${port}${heartbeatUrl}"
     @Lazy fullEidasResponseUrl = "${protocol}://${host}:${port}${eidasResponseUrl}"
