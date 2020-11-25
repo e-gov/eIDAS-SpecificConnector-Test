@@ -84,8 +84,8 @@ class MetadataSpec extends EEConnectorSpecification {
         String redirectLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[1];
         assertEquals("Correct post Binding attribute value", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", postBinding)
         assertEquals("Correct redirect Binding attribute value", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect", redirectBinding)
-        assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrl.toString(), postLocation)
-        assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrl.toString(), redirectLocation)
+        assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrlWithoutPort.toString(), postLocation)
+        assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrlWithoutPort.toString(), redirectLocation)
 
         String personIdentifier = xmlPath.getString("**.find {it.@FriendlyName == 'PersonIdentifier'}.@Name")
         String familyName = xmlPath.getString("**.find {it.@FriendlyName == 'FamilyName'}.@Name")
