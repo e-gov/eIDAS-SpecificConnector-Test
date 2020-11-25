@@ -70,7 +70,7 @@ class DomesticConnector {
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
     @Lazy metadataUrlWithoutPort = "${protocol}://${host}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
-    @Lazy fullAuthenticationRequestUrlWithoutPort = "${protocol}://${host}:${port}${authenticationRequestUrl}"
+    @Lazy fullAuthenticationRequestUrlWithoutPort = "${protocol}://${host}${authenticationRequestUrl}"
     @Lazy fullheartbeatUrl = "${protocol}://${host}:${port}${heartbeatUrl}"
     @Lazy fullEidasResponseUrl = "${protocol}://${host}:${port}${eidasResponseUrl}"
     @Lazy fullEidasColleagueResponseUrl = "${protocol}://${host}:${port}${eidasColleagueResponseUrl}"
