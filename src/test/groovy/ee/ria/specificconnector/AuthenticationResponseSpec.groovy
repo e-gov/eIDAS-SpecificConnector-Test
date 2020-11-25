@@ -278,7 +278,10 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
-        String samlResponse = SamlUtils.decodeBase64(Steps.continueAuthenticationFlowDenyConsent(flow, REQUEST_TYPE_POST))
+        Steps.continueAuthenticationFlowDenyConsent(flow, REQUEST_TYPE_POST)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
+        String encodedSamlResponse = authenticationResponse.body().htmlPath().getString("**.find {it.@name == 'SAMLResponse'}.@value")
+        String samlResponse = SamlUtils.decodeBase64(encodedSamlResponse)
         XmlPath xmlPath = new XmlPath(samlResponse)
         String inResponseTo = xmlPath.getString("Response.@InResponseTo")
         String statusCode = xmlPath.getString("Response.Status.StatusCode.@Value")
@@ -287,7 +290,6 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:Responder", statusCode)
         assertEquals("Correct SAML status message is returned", "Citizen consent not given.", statusMessage)
         assertEquals("Correct second level SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:RequestDenied", secondLevelStatusCode)
-        // TARA2-59
-        // assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
+        assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
     }
 }

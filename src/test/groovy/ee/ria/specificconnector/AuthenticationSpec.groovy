@@ -259,7 +259,6 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
         "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
         "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
-        //  TARA2-42    "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
     }
 
     @Unroll
