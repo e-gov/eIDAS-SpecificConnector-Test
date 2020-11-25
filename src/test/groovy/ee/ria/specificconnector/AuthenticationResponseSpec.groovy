@@ -287,6 +287,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:Responder", statusCode)
         assertEquals("Correct SAML status message is returned", "Citizen consent not given.", statusMessage)
         assertEquals("Correct second level SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:RequestDenied", secondLevelStatusCode)
-        assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
+        // TARA2-59
+        // assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
     }
 }

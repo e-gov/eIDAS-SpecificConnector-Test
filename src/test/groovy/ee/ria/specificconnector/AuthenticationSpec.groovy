@@ -245,7 +245,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
         where:
         attributeName  | attributeValue                                          || message
-        "IsPassive"    | _                                                       || "SAML request is invalid - expecting IsPassive to be false"
+   //  TARA2-42    "IsPassive"    | _                                                       || "SAML request is invalid - expecting IsPassive to be false"
         "IsPassive"    | true                                                    || "SAML request is invalid - expecting IsPassive to be false"
         "ForceAuthn"   | _                                                       || "SAML request is invalid - expecting ForceAuthn to be true"
         "ForceAuthn"   | false                                                   || "SAML request is invalid - expecting ForceAuthn to be true"
@@ -260,7 +260,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
         "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
         "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
-        "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
+        //  TARA2-42    "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
     }
 
     @Unroll
@@ -277,7 +277,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
         where:
         attributeName  | attributeValue                                          || message
-        "IsPassive"    | _                                                       || "SAML request is invalid - expecting IsPassive to be false"
+        //  TARA2-42  "IsPassive"    | _                                                       || "SAML request is invalid - expecting IsPassive to be false"
         "IsPassive"    | true                                                    || "SAML request is invalid - expecting IsPassive to be false"
         "ForceAuthn"   | _                                                       || "SAML request is invalid - expecting ForceAuthn to be true"
         "ForceAuthn"   | false                                                   || "SAML request is invalid - expecting ForceAuthn to be true"
@@ -292,7 +292,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
         "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
         "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
-        "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
+        //  TARA2-42    "ProviderName" | RandomStringUtils.random(95000, true, true)             || "SAML request is invalid"
     }
 
     @Unroll
@@ -307,7 +307,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         where:
         attributeName  | attributeValue
         "ProviderName" | "illegal-provider"
-        "SPType"       | _
+        //  TARA2-42    "SPType"       | _
         "ProviderName" | _
         "ProviderName" | RandomStringUtils.random(94500, true, true)
         "IssueInstant" | "2030-11-08T19:29:47.759Z"
