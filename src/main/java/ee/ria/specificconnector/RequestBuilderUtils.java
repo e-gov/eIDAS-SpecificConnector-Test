@@ -12,8 +12,6 @@ import org.opensaml.xmlsec.signature.Signature;
 import org.opensaml.xmlsec.signature.support.Signer;
 
 import javax.xml.namespace.QName;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 
 
 public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
@@ -182,7 +180,7 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
                 if (attributeValue != null) {
                     authnRequest.setExtensions(buildExtensions(attributeValue.toString()));
                 } else {
-                    authnRequest.setExtensions(buildEmptyExtensionsWithoutSPType());
+                    authnRequest.setExtensions(buildExtensionsWithoutSPType());
                 }
             } else {
                 authnRequest.setExtensions(buildExtensions(spType));
@@ -265,9 +263,13 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         return extensions;
     }
 
-    private Extensions buildEmptyExtensionsWithoutSPType() {
+    private Extensions buildExtensionsWithoutSPType() {
         Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
         XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
+        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("PersonIdentifier", "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
+        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FamilyName", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
+        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FirstName", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
+        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("DateOfBirth", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
         extensions.getUnknownXMLObjects().add(requestedAttributes);
         return extensions;
     }
