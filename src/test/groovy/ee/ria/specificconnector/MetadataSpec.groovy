@@ -96,4 +96,14 @@ class MetadataSpec extends EEConnectorSpecification {
         assertEquals("Correct FirstName SAML attribute", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", firstName)
         assertEquals("Correct DateOfBirth SAML attribute", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", dateOfBirth)
     }
+
+    @Unroll
+    @Feature("METADATA_REQUEST")
+    @Feature("SECURITY")
+    def "Verify metadata response header"() {
+        expect:
+        ValidatableResponse response = Requests.getMetadataResponse(flow)
+        response.header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
+    }
+
 }

@@ -353,4 +353,13 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertThat(Base64.getDecoder().decode(lightToken[3]).size(), Matchers.equalTo(32))
     }
 
+    @Unroll
+    @Feature("AUTHENTICATION_ENDPOINT")
+    @Feature("SECURITY")
+    def "Verify authentication response header"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
+        response.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
+    }
 }

@@ -5,20 +5,17 @@ import io.restassured.filter.cookie.CookieFilter
 import io.restassured.path.xml.XmlPath
 import io.restassured.path.xml.config.XmlPathConfig
 import io.restassured.response.Response
-import org.hamcrest.Matchers
-import io.restassured.matcher.RestAssuredMatchers
-import spock.lang.Unroll
-import org.opensaml.saml.saml2.core.Assertion
 import org.apache.commons.validator.routines.InetAddressValidator
+import org.hamcrest.Matchers
+import org.opensaml.saml.saml2.core.Assertion
+import org.opensaml.security.x509.X509Support
+import spock.lang.Unroll
 
-import java.security.cert.X509Certificate;
-import org.opensaml.security.x509.X509Support;
+import java.security.cert.X509Certificate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertThat
-import static org.junit.Assert.assertTrue
+import static org.junit.Assert.*
 
 class AuthenticationResponseSpec extends EEConnectorSpecification {
 
@@ -217,7 +214,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         SamlSignatureUtils.validateSignature(samlResponseXML, connectorSigningCertificate)
         XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
         String algorithm = xmlPath.getString("Response.Signature.SignedInfo.SignatureMethod.@Algorithm")
-        assertEquals("Correct assertion signing Algoritm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", algorithm)
+        assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", algorithm)
     }
 
     @Unroll
@@ -232,7 +229,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         SamlSignatureUtils.validateSignature(samlAssertion.getSignature(), connectorSigningCertificate)
-        assertEquals("Correct assertion signing Algoritm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", samlAssertion.getSignature().getSignatureAlgorithm())
+        assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", samlAssertion.getSignature().getSignatureAlgorithm())
     }
 
     @Unroll
@@ -291,5 +288,17 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct SAML status message is returned", "Citizen consent not given.", statusMessage)
         assertEquals("Correct second level SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:RequestDenied", secondLevelStatusCode)
         assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_RESULT_ENDPOINT")
+    @Feature("SECURITY")
+    def "Verify authentication result header"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
+        authenticationResponse.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
     }
 }

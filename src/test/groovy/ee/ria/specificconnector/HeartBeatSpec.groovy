@@ -6,9 +6,7 @@ import io.restassured.response.Response
 import org.hamcrest.Matchers
 import spock.lang.Unroll
 
-
 class HeartBeatSpec extends EEConnectorSpecification {
-
     Flow flow = new Flow(props)
 
     def setup() {
@@ -20,7 +18,6 @@ class HeartBeatSpec extends EEConnectorSpecification {
     @Feature("HEALTH_MONITORING_ENDPOINT_DEPENDENCIES")
     def "Verify heartbeat response elements"() {
         expect:
-
         Response heartBeat = Requests.getHeartbeat(flow)
         heartBeat.then()
                 .body("status", Matchers.notNullValue())
@@ -39,6 +36,15 @@ class HeartBeatSpec extends EEConnectorSpecification {
                 .body("dependencies[2].status", Matchers.is("UP"))
                 .body("dependencies[3].name", Matchers.is("connectorMetadata"))
                 .body("dependencies[3].status", Matchers.is("UP"))
+    }
+
+    @Unroll
+    @Feature("HEALTH_MONITORING_ENDPOINT")
+    @Feature("SECURITY")
+    def "Verify heartbeat response header"() {
+        expect:
+        Response heartBeat = Requests.getHeartbeat(flow)
+        heartBeat.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
     }
 
 }

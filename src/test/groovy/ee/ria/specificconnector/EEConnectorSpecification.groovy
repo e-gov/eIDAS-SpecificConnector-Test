@@ -37,6 +37,8 @@ class EEConnectorSpecification extends Specification {
     X509Certificate connectorSigningCertificate
     @Shared
     X509Certificate spMetadataSigningCertificate
+    @Shared
+    String defaultContentSecurityPolicy = "block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='"
 
     def setupSpec() {
         InitializationService.initialize()
