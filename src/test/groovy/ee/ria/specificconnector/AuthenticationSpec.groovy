@@ -40,31 +40,12 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
 
         Response response1 = Requests.sendLightTokenRequestToEidas(flow, lightTokenRequestUrl, lightTokenForRequest)
-        String samlRequest2 = response1.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value")
-        String actionUrl = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        flow.setRequestMessage(response1.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value"))
+        flow.setNextEndpoint(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action"))
 
-        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_POST, samlRequest2, actionUrl)
-        String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
-        String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
 
-        Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_POST, action, token)
-        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
-
-        String binaryLightToken = Steps.idpAuthentication(flow, REQUEST_TYPE_POST, action2, smsspRequest)
-
-        Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
-        String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
-        String token2 = response7.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
-
-        Response response8 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_POST, action5, token2)
-        String samlResponse = response8.body().htmlPath().get("**.find {it.@id == 'ColleagueResponse_SAMLResponse'}.@value")
-
-        Response response9 = Requests.colleagueResponse(flow, samlResponse)
-        String token3 = response9.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
-        String actionUrl6 = response9.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-
-        Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, actionUrl6, token3)
+        Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 200, response10.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(response10, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
@@ -80,31 +61,12 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
         assertEquals("Correct HTTP status code is returned", 302, response.statusCode())
         Response response1 = Steps.followRedirect(flow, response)
-        String actionUrl = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String samlRequest2 = response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
+        flow.setNextEndpoint(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action"))
+        flow.setRequestMessage(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value"))
 
-        Response response2 = Requests.colleagueRequest(flow, REQUEST_TYPE_GET, samlRequest2, actionUrl)
-        String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
-        String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
-
-        Response response3 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_GET, action, token)
-        String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
-
-        String binaryLightToken = Steps.idpAuthentication(flow, REQUEST_TYPE_GET, action2, smsspRequest)
-
-        Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
-        String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
-        String token2 = response7.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
-
-        Response response8 = Requests.proxyServiceRequest(flow, REQUEST_TYPE_GET, action5, token2)
-        String samlResponse = response8.body().htmlPath().get("**.find {it.@id == 'ColleagueResponse_SAMLResponse'}.@value")
-
-        Response response9 = Requests.colleagueResponse(flow, samlResponse)
-        String token3 = response9.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
-        String actionUrl6 = response9.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-
-        Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, actionUrl6, token3)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+        
+        Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 302, response10.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(response10, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
