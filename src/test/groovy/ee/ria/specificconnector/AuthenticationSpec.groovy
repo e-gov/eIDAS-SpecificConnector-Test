@@ -16,9 +16,6 @@ import static org.junit.Assert.assertTrue
 
 class AuthenticationSpec extends EEConnectorSpecification {
 
-    static String REQUEST_TYPE_POST = "post"
-    static String REQUEST_TYPE_GET = "get"
-
     Flow flow = new Flow(props)
 
     def setup() {
@@ -35,7 +32,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
     def "request authentication with post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertThat(response.getStatusCode(), Matchers.equalTo(200))
@@ -54,16 +51,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
 
-        Response response4 = Requests.idpRequest(flow, REQUEST_TYPE_POST, action2, smsspRequest)
-        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
-        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
-
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson)
-        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
-
-        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
-        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+        String binaryLightToken = Steps.idpAuthentication(flow, REQUEST_TYPE_POST, action2, smsspRequest)
 
         Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
         String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
@@ -86,7 +74,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
     def "request authentication with get"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         String relayState = "ABC-" + RandomStringUtils.random(76, true, true)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
@@ -103,16 +91,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
 
-        Response response4 = Requests.idpRequest(flow, REQUEST_TYPE_GET, action2, smsspRequest)
-        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
-        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
-
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson)
-        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
-
-        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
-        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+        String binaryLightToken = Steps.idpAuthentication(flow, REQUEST_TYPE_GET, action2, smsspRequest)
 
         Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
         String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
@@ -152,7 +131,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_ENDPOINT")
     def "request authentication with invalid parameters. Expected error message: [#message]"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         def map = [:]
         // Spock specific workaround
         def map1 = SamlUtils.setUrlParameter(map, param1, samlRequest)
@@ -180,7 +159,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REQUEST_SP_CHECK")
     def "request authentication with invalid service provider"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithInvalidIssuer(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequestWithInvalidIssuer(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
@@ -192,7 +171,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REQUEST_ATTRIBUTES_CHECK")
     def "request authentication with missing attributes"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithoutExtensions(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequestWithoutExtensions(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
@@ -204,7 +183,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REQUEST_ATTRIBUTES_CHECK")
     def "request authentication with unsupported attribute"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithUnsupportedAttribute(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequestWithUnsupportedAttribute(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
@@ -216,7 +195,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
     def "request authentication with invalid signing certificate #credential.entityId"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithInvalidCredential(flow, "eidas-eeserviceprovider", credential)
+        String samlRequest = Steps.getAuthnRequestWithInvalidCredential(flow, credential)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
@@ -235,8 +214,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REQUEST_VALIDATION")
     def "request authentication GET with invalid saml request. #attributeName"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
-        // println(SamlUtils.decodeBase64(samlRequest))
+        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, attributeName, attributeValue)
+
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
@@ -265,8 +244,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REQUEST_VALIDATION")
     def "request authentication POST with invalid saml request. #attributeName"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
-        // println(SamlUtils.decodeBase64(samlRequest))
+        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, attributeName, attributeValue)
+
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
@@ -295,7 +274,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REQUEST_VALIDATION")
     def "request authentication with missing parameters #attributeName"() {
         expect:
-        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, "eidas-eeserviceprovider", attributeName, attributeValue)
+        String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, attributeName, attributeValue)
         print samlRequest.size()
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 200, response.statusCode())
@@ -314,7 +293,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
     def "request authentication with LightToken and post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 200, response.statusCode())
         String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
@@ -336,7 +315,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_REDIRECT_WITH_LIGHTTOKEN")
     def "request authentication redirect with LightToken and get"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         String relayState = "CDE-" + RandomStringUtils.random(76, true, true)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
@@ -358,7 +337,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
     @Feature("SECURITY")
     def "Verify authentication response header"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         response.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
     }

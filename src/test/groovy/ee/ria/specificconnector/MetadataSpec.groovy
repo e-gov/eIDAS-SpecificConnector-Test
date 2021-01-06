@@ -78,10 +78,10 @@ class MetadataSpec extends EEConnectorSpecification {
         expect:
         String metadataXml = Requests.getMetadataBody(flow)
         XmlPath xmlPath = new XmlPath(metadataXml)
-        String postBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[0];
-        String redirectBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[1];
-        String postLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[0];
-        String redirectLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[1];
+        String postBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[0]
+        String redirectBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[1]
+        String postLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[0]
+        String redirectLocation = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location")[1]
         assertEquals("Correct post Binding attribute value", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST", postBinding)
         assertEquals("Correct redirect Binding attribute value", "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect", redirectBinding)
         assertEquals("Correct post binding Location attribute value", flow.domesticConnector.fullAuthenticationRequestUrlWithoutPort.toString(), postLocation)

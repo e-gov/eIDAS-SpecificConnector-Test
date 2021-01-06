@@ -185,7 +185,7 @@ class Requests {
     }
 
     @Step("IdP authorization")
-    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson, String idpUsername = "xavi", String idpPassword = "creus", String eidasloa = "E") {
+    static Response idpAuthorizationRequest(Flow flow, String smsspToken, String smsspTokenRequestJson, String idpUsername, String idpPassword, String eidasloa) {
         Response response =
                 given()
                         .filter(flow.cookieFilter)

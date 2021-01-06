@@ -10,33 +10,33 @@ import java.nio.charset.StandardCharsets
 
 class SamlResponseUtils {
     static Assertion extractSamlAssertion(Response samlResponse, Credential encryptionCredential) {
-        return decryptSamlAssertion(decodeSamlResponse(samlResponse), encryptionCredential);
+        return decryptSamlAssertion(decodeSamlResponse(samlResponse), encryptionCredential)
     }
 
     static Assertion extractSamlAssertionFromPost(Response samlResponse, Credential encryptionCredential) {
-        return decryptSamlAssertion(decodeSamlResponseFromPost(samlResponse), encryptionCredential);
+        return decryptSamlAssertion(decodeSamlResponseFromPost(samlResponse), encryptionCredential)
     }
 
     static String decodeSamlResponseFromPost(Response response) {
         String SAMLresponseToAssert = response.getBody().htmlPath().getString("**.find { it.@name == 'SAMLResponse' }.@value")
-        return new String(Base64.getDecoder().decode(SAMLresponseToAssert), StandardCharsets.UTF_8);
+        return new String(Base64.getDecoder().decode(SAMLresponseToAssert), StandardCharsets.UTF_8)
     }
 
     static String decodeSamlResponse(Response response) {
-        String urlEncodedSAMLresponse = response.getHeader("location").toURL().getQuery().split("&")[0].split("=")[1];
-        String SAMLresponseToAssert = URLDecoder.decode(urlEncodedSAMLresponse, "UTF-8");
-        return new String(Base64.getDecoder().decode(SAMLresponseToAssert), StandardCharsets.UTF_8);
+        String urlEncodedSAMLresponse = response.getHeader("location").toURL().getQuery().split("&")[0].split("=")[1]
+        String SAMLresponseToAssert = URLDecoder.decode(urlEncodedSAMLresponse, "UTF-8")
+        return new String(Base64.getDecoder().decode(SAMLresponseToAssert), StandardCharsets.UTF_8)
     }
 
     static Assertion decryptSamlAssertion(String xmlSamlResponse, Credential encryptionCredential) {
-        org.opensaml.saml.saml2.core.Response samlResponseObj = null;
+        org.opensaml.saml.saml2.core.Response samlResponseObj = null
         try {
-            samlResponseObj = OpenSAMLUtils.getSamlResponse(xmlSamlResponse);
+            samlResponseObj = OpenSAMLUtils.getSamlResponse(xmlSamlResponse)
         } catch (XMLParserException e) {
-            e.printStackTrace();
+            e.printStackTrace()
         } catch (UnmarshallingException e) {
-            e.printStackTrace();
+            e.printStackTrace()
         }
-        return SamlSignatureUtils.decryptAssertion(samlResponseObj.getEncryptedAssertions().get(0), encryptionCredential);
+        return SamlSignatureUtils.decryptAssertion(samlResponseObj.getEncryptedAssertions().get(0), encryptionCredential)
     }
 }

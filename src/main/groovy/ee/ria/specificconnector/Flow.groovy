@@ -89,6 +89,7 @@ class DomesticConnector {
 
 @Canonical
 class DomesticSpService {
+    String providerName
     String host
     String port
     String protocol
@@ -109,6 +110,7 @@ class DomesticSpService {
     @Lazy fullReturnUrl = "${protocol}://${host}:${port}${returnUrl}"
 
     DomesticSpService(Properties properties) {
+        this.providerName = properties."ee-spservice.providerName"
         this.host = properties."ee-spservice.host"
         this.port = properties."ee-spservice.port"
         this.protocol = properties."ee-spservice.protocol"

@@ -48,8 +48,8 @@ class SamlUtils {
     }
 
     static boolean isValidDateTime(String datetime) {
-        String pattern = "yyyy-MM-dd HH:mm:ss SSS";
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+        String pattern = "yyyy-MM-dd HH:mm:ss SSS"
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern)
         LocalDateTime timestamp = LocalDateTime.parse(datetime, formatter)
         if (datetime.equals(timestamp.format(pattern)))
             return true
@@ -58,8 +58,8 @@ class SamlUtils {
     }
 
     static boolean isValidXMLDateTime(String datetime) {
-        String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern)
         LocalDateTime timestamp = LocalDateTime.parse(datetime, formatter)
         if (datetime.equals(timestamp.format(pattern)))
             return true
@@ -72,7 +72,7 @@ class SamlUtils {
             return false
         } else {
             try {
-                String string = new String(Base64.getDecoder().decode(encodedString), StandardCharsets.UTF_8);
+                String string = new String(Base64.getDecoder().decode(encodedString), StandardCharsets.UTF_8)
             } catch (Base64DecodingException e) {
                 return false
             }
@@ -81,7 +81,7 @@ class SamlUtils {
     }
 
     static String decodeBase64(String encodedString) {
-        return new String(Base64.getDecoder().decode(encodedString), StandardCharsets.UTF_8);
+        return new String(Base64.getDecoder().decode(encodedString), StandardCharsets.UTF_8)
     }
 
     static String getRelayStateFromResponseHeader(Response response) {

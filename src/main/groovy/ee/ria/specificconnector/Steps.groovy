@@ -1,5 +1,6 @@
 package ee.ria.specificconnector
 
+
 import io.qameta.allure.Allure
 import io.qameta.allure.Step
 import io.restassured.response.Response
@@ -13,16 +14,23 @@ class Steps {
     static String LOA_HIGH = "http://eidas.europa.eu/LoA/high"
     static String REQUEST_TYPE_POST = "post"
     static String REQUEST_TYPE_GET = "get"
+    static String SP_TYPE = "public"
+    static String IDP_USERNAME = "xavi"
+    static String IDP_PASSWORD = "creus"
+    static String EIDASLOA = "E"
 
     @Step("Create Natural Person authentication request")
-    static String getAuthnRequest(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+    static String getAuthnRequest(Flow flow) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
-                providerName,
+                flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
-                loa, comparison, nameIdFormat, spType)
+                LOA_HIGH,
+                AuthnContextComparisonTypeEnumeration.MINIMUM,
+                NameIDType.UNSPECIFIED,
+                SP_TYPE)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         flow.domesticSpService.samlRequestId = request.getID()
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
@@ -32,10 +40,10 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request with invalid issuer metadata url")
-    static String getAuthnRequestWithInvalidIssuer(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+    static String getAuthnRequestWithInvalidIssuer(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
-                providerName,
+                flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 "https://example.net/EidasNode/ConnectorMetadata",
@@ -48,10 +56,10 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request without extensions")
-    static String getAuthnRequestWithoutExtensions(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+    static String getAuthnRequestWithoutExtensions(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParamsWithoutExtensions(flow.domesticSpService.signatureCredential,
-                providerName,
+                flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
@@ -64,10 +72,10 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request with unsupported attribute")
-    static String getAuthnRequestWithUnsupportedAttribute(Flow flow, String providerName, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = "public") {
+    static String getAuthnRequestWithUnsupportedAttribute(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParamsWithUnsupportedAttribute(flow.domesticSpService.signatureCredential,
-                providerName,
+                flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
@@ -80,14 +88,14 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request with invalid credential")
-    static String getAuthnRequestWithInvalidCredential(Flow flow, String providerName, Credential signingCredential) {
+    static String getAuthnRequestWithInvalidCredential(Flow flow, Credential signingCredential) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(signingCredential,
-                providerName,
+                flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
-                LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM, NameIDType.UNSPECIFIED, "public")
+                LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM, NameIDType.UNSPECIFIED, SP_TYPE)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
@@ -96,18 +104,18 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request with missing attribute")
-    static String getAuthnRequestWithMissingAttribute(Flow flow, String providerName, String attributeName, Object attributeValue) {
+    static String getAuthnRequestWithMissingAttribute(Flow flow, String attributeName, Object attributeValue) {
         if (attributeValue instanceof Wildcard) {
             attributeValue = null
         }
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestWithMissingAttribute(flow.domesticSpService.signatureCredential,
-                providerName,
+                flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
                 LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM,
                 NameIDType.UNSPECIFIED,
-                "public",
+                SP_TYPE,
                 attributeName,
                 attributeValue,
                 flow.domesticSpService.metadataCredential)
@@ -138,7 +146,7 @@ class Steps {
     }
 
     @Step("Continue authentication on abroad")
-    static void continueAuthenticationFlow(Flow flow, String requestType, String idpUsername = "xavi", idpPassword = "creus" , String eidasloa = "E") {
+    static void continueAuthenticationFlow(Flow flow, String requestType, String idpUsername = IDP_USERNAME, idpPassword = IDP_PASSWORD, String eidasloa = EIDASLOA) {
         Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
         String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
         String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
@@ -146,16 +154,7 @@ class Steps {
         Response response3 = Requests.proxyServiceRequest(flow, requestType, action, token)
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
-        Response response4 = Requests.idpRequest(flow, requestType, action2, smsspRequest)
-        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
-        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
-
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword, eidasloa)
-        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
-
-        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
-        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+        String binaryLightToken = idpAuthentication(flow, requestType, action2, smsspRequest, idpUsername, idpPassword, eidasloa)
 
         Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
         String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
@@ -170,7 +169,7 @@ class Steps {
     }
 
     @Step("Continue authentication on abroad with errors")
-    static void continueAuthenticationFlowWithErrors(Flow flow, String requestType, String idpUsername = "xavi", idpPassword = "creus" , String eidasloa = "E") {
+    static void continueAuthenticationFlowWithErrors(Flow flow, String requestType, String idpUsername = IDP_USERNAME, idpPassword = IDP_PASSWORD, String eidasloa = EIDASLOA) {
         Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
         String action = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
         String token = response2.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.input[0].@value")
@@ -178,16 +177,7 @@ class Steps {
         Response response3 = Requests.proxyServiceRequest(flow, requestType, action, token)
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
-        Response response4 = Requests.idpRequest(flow, requestType, action2, smsspRequest)
-        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
-        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
-
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword, eidasloa)
-        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
-
-        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
-        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+        String binaryLightToken = idpAuthentication(flow, requestType, action2, smsspRequest, idpUsername, idpPassword, eidasloa)
 
         Response response7 = Requests.afterCitizenConsentResponse(flow, binaryLightToken)
         String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")
@@ -201,6 +191,21 @@ class Steps {
         flow.nextEndpoint = response9.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
     }
 
+    @Step("Identity provider authentication")
+    static String idpAuthentication(Flow flow, String requestType, String redirectionUrl, String smsspRequest, String idpUsername = IDP_USERNAME, idpPassword = IDP_PASSWORD, String eidasloa = EIDASLOA) {
+        Response response4 = Requests.idpRequest(flow, requestType, redirectionUrl, smsspRequest)
+        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
+        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
+
+        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson, idpUsername, idpPassword, eidasloa)
+        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
+        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
+
+        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
+        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+        binaryLightToken
+    }
+
     @Step("Continue authentication on abroad deny consent")
     static String continueAuthenticationFlowDenyConsent(Flow flow, String requestType) {
         Response response2 = Requests.colleagueRequest(flow, requestType, flow.requestMessage, flow.nextEndpoint)
@@ -210,16 +215,7 @@ class Steps {
         Response response3 = Requests.proxyServiceRequest(flow, requestType, action, token)
         String action2 = response3.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
         String smsspRequest = response3.body().htmlPath().get("**.find {it.@id == 'SMSSPRequest'}.@value")
-        Response response4 = Requests.idpRequest(flow, requestType, action2, smsspRequest)
-        String smsspToken = response4.body().htmlPath().get("**.find {it.@name == 'smsspToken'}.@value")
-        String smsspTokenRequestJson = response4.body().htmlPath().get("**.find {it.@id == 'jSonRequestDecoded'}")
-
-        Response response5 = Requests.idpAuthorizationRequest(flow, smsspToken, smsspTokenRequestJson)
-        String action3 = response5.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
-        String smsspTokenResponse = response5.body().htmlPath().get("**.find {it.@id == 'SMSSPResponseNoJS'}.@value")
-
-        Response response6 = Requests.idpAuthorizationResponse(flow, action3, smsspTokenResponse)
-        String binaryLightToken = response6.body().htmlPath().get("**.find {it.@id == 'binaryLightToken'}.@value")
+        String binaryLightToken = idpAuthentication(flow, requestType, action2, smsspRequest)
 
         Response response7 = Requests.denyConsentResponse(flow, binaryLightToken)
         String action5 = response7.body().htmlPath().get("**.find {it.@id == 'redirectForm'}.@action")

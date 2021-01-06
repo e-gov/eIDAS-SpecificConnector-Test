@@ -19,9 +19,6 @@ import static org.junit.Assert.*
 
 class AuthenticationResponseSpec extends EEConnectorSpecification {
 
-    static String REQUEST_TYPE_POST = "post"
-    static String REQUEST_TYPE_GET = "get"
-
     Flow flow = new Flow(props)
 
     def setup() {
@@ -37,7 +34,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("FORWARD_SPECIFIC_RESPONSE_TO_SP")
     def "get authentication response get"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
@@ -52,7 +49,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("FORWARD_SPECIFIC_RESPONSE_TO_SP")
     def "get authentication response post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
@@ -67,7 +64,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
     def "validate authentication response post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
@@ -75,8 +72,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         String samlResponseXML = SamlResponseUtils.decodeSamlResponseFromPost(authenticationResponse)
-        // assertThat(samlResponseXML, RestAssuredMatchers.matchesXsd(new File("src/test/resources/saml-schema-protocol-2.0.xsd")))
-        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
+        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"))
         String destination = xmlPath.getString("Response.@Destination")
         assertEquals("Destination attribute is URI", destination, new URL(destination).toURI().toString())
         assertEquals("ID attribute length", 64, xmlPath.getString("Response.@ID").length())
@@ -94,7 +90,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
     def "validate authentication response get"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
@@ -102,8 +98,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         String samlResponseXML = SamlResponseUtils.decodeSamlResponse(authenticationResponse)
-        // assertThat(samlResponseXML, RestAssuredMatchers.matchesXsd(new File("src/test/resources/saml-schema-protocol-2.0.xsd")))
-        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
+        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"))
         String destination = xmlPath.getString("Response.@Destination")
         assertEquals("Destination attribute is URI", destination, new URL(destination).toURI().toString())
         assertEquals("ID attribute length", 64, xmlPath.getString("Response.@ID").length())
@@ -127,7 +122,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("SAML_ASSERTION_VALID_TO")
     def "validate authentication response assertion post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
 
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
@@ -138,7 +133,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertTrue("Saml assertion ID exists", samlAssertion.getID().length() > 15)
 
         String samlResponseXML = SamlResponseUtils.decodeSamlResponseFromPost(authenticationResponse)
-        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
+        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"))
         String responseIssueInstant = xmlPath.getString("Response.@IssueInstant")
         assertEquals("Correct IssueInstant is returned", responseIssueInstant, samlAssertion.getIssueInstant().toString())
         assertEquals("Correct Assertion Version attribute value", "2.0", samlAssertion.getVersion().toString())
@@ -203,7 +198,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("SAML_RESPONSE_SIGNING")
     def "saml response signed with correct key"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
@@ -212,7 +207,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         String samlResponseXML = SamlResponseUtils.decodeSamlResponse(authenticationResponse)
         SamlSignatureUtils.validateSignature(samlResponseXML, connectorSigningCertificate)
-        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"));
+        XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"))
         String algorithm = xmlPath.getString("Response.Signature.SignedInfo.SignatureMethod.@Algorithm")
         assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", algorithm)
     }
@@ -221,7 +216,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("SAML_ASSERTION_SIGNING")
     def "saml response assertion signed with correct key"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
@@ -242,7 +237,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         X509Certificate x509Encryption = X509Support.decodeCertificate(encryptionCertificate)
         assertEquals("Correct encryption certificate", x509Encryption, flow.domesticSpService.encryptionCertificate)
 
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
@@ -254,7 +249,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("TRANSLATE_NODE_RESPONSE_AUTHENTICATION_FAILED")
     def "get loa error response post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
         Steps.continueAuthenticationFlowWithErrors(flow, REQUEST_TYPE_POST, "xavi", "creus", "A")
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
@@ -273,7 +268,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("TRANSLATE_NODE_RESPONSE_AUTHENTICATION_FAILED")
     def "user deny consent post"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
         Steps.continueAuthenticationFlowDenyConsent(flow, REQUEST_TYPE_POST)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
@@ -295,7 +290,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Feature("SECURITY")
     def "Verify authentication result header"() {
         expect:
-        String samlRequest = Steps.getAuthnRequest(flow, "eidas-eeserviceprovider")
+        String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)

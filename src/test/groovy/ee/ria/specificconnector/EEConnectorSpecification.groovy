@@ -39,6 +39,8 @@ class EEConnectorSpecification extends Specification {
     X509Certificate spMetadataSigningCertificate
     @Shared
     String defaultContentSecurityPolicy = "block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='"
+    static String REQUEST_TYPE_POST = "post"
+    static String REQUEST_TYPE_GET = "get"
 
     def setupSpec() {
         InitializationService.initialize()
@@ -55,7 +57,6 @@ class EEConnectorSpecification extends Specification {
                 props.load(it)
             }
 
-            //Log all requests and responses for debugging
             if (envProperties."log_all" && envProperties."log_all" != "false") {
                 RestAssured.filters(new RequestLoggingFilter(), new ResponseLoggingFilter())
             }
@@ -78,7 +79,7 @@ class EEConnectorSpecification extends Specification {
             }
 
             signatureCredential = KeystoreUtils.getCredential(keystore, props."ee-spservice.keystore.requestSigningKeyId" as String, props."ee-spservice.keystore.requestSigningKeyPassword" as String)
-            spSigningCertificate = (X509Certificate) keystore.getCertificate(props."ee-spservice.keystore.requestSigningKeyId".toString());
+            spSigningCertificate = (X509Certificate) keystore.getCertificate(props."ee-spservice.keystore.requestSigningKeyId".toString())
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
@@ -97,7 +98,7 @@ class EEConnectorSpecification extends Specification {
                 }
             }
             encryptionCredential = KeystoreUtils.getCredential(encryptionKeystore, props."ee-spservice.keystore.samlAssertionDecryptKey" as String, props."ee-spservice.keystore.samlAssertionDecryptPassword" as String)
-            encryptionCertificate = (X509Certificate) encryptionKeystore.getCertificate(props."ee-spservice.keystore.samlAssertionDecryptKey".toString());
+            encryptionCertificate = (X509Certificate) encryptionKeystore.getCertificate(props."ee-spservice.keystore.samlAssertionDecryptKey".toString())
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
@@ -182,7 +183,7 @@ class EEConnectorSpecification extends Specification {
                     responseSigningKeystore.load(it, props.get("ee-connector.keystore.password").toString().toCharArray())
                 }
             }
-            connectorSigningCertificate = (X509Certificate) responseSigningKeystore.getCertificate(props."ee-connector.keystore.responseSigningKeyId".toString());
+            connectorSigningCertificate = (X509Certificate) responseSigningKeystore.getCertificate(props."ee-connector.keystore.responseSigningKeyId".toString())
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
@@ -199,7 +200,7 @@ class EEConnectorSpecification extends Specification {
                     spResponseSigningKeystore.load(it, props.get("ee-connector.truststore.password").toString().toCharArray())
                 }
             }
-            spMetadataSigningCertificate = (X509Certificate) spResponseSigningKeystore.getCertificate(props."ee-connector.truststore.spRequestSigningKeyId".toString());
+            spMetadataSigningCertificate = (X509Certificate) spResponseSigningKeystore.getCertificate(props."ee-connector.truststore.spRequestSigningKeyId".toString())
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
