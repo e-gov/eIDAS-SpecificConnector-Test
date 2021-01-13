@@ -15,7 +15,7 @@
         <!-- Dependency versions -->
         <groovy.version>2.5.13</groovy.version>
         <spock.version>1.3-groovy-2.5</spock.version>
-        <allure.version>2.13.5</allure.version>
+        <allure.version>2.13.8</allure.version>
         <surefire-junit47.version>3.0.0-M5</surefire-junit47.version>
         <opensaml.version>3.4.5</opensaml.version>
         <rest-assured.version>4.2.0</rest-assured.version>
@@ -61,17 +61,15 @@
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-spock</artifactId>
             <version>${allure.version}</version>
-
-            <exclusions>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-rest-assured</artifactId>
+            <version>${allure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-junit4</artifactId>
             <version>${allure.version}</version>
         </dependency>
 
@@ -82,12 +80,6 @@
             <version>${rest-assured.version}</version>
         </dependency>
         <!-- Utils -->
-        <dependency>
-            <groupId>org.apache.maven.surefire</groupId>
-            <artifactId>surefire-junit47</artifactId>
-            <version>${surefire-junit47.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>org.opensaml</groupId>
             <artifactId>opensaml-core</artifactId>
@@ -190,7 +182,7 @@
                     <properties>
                         <property>
                             <name>listener</name>
-                            <value>io.qameta.allure.spock.AllureSpock</value>
+                            <value>io.qameta.allure.junit4.AllureJunit4</value>
                         </property>
                     </properties>
                     <systemProperties>
@@ -205,6 +197,11 @@
                         <groupId>org.aspectj</groupId>
                         <artifactId>aspectjweaver</artifactId>
                         <version>${aspectj.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.maven.surefire</groupId>
+                        <artifactId>surefire-junit47</artifactId>
+                        <version>${surefire-junit47.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
