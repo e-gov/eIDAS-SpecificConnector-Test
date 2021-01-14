@@ -17,7 +17,7 @@
         elementFormDefault='qualified'>
 
     <import namespace='http://www.w3.org/2000/09/xmldsig#'
-            schemaLocation='classpath:/__files/saml/xmldsig-core-schema.xsd'/>
+            schemaLocation='xmldsig-core-schema.xsd'/>
 
     <complexType name='EncryptedType' abstract='true'>
         <sequence>
