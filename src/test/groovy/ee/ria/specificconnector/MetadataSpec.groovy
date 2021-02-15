@@ -10,6 +10,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+import static org.hamcrest.Matchers.containsString
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertThat
 import spock.lang.Unroll
@@ -50,7 +51,7 @@ class MetadataSpec extends EEConnectorSpecification {
         assertTrue(Math.abs(duration.seconds) < 15)
 
         String foreignCountry = xmlPath.getString("EntityDescriptor.Extensions.SupportedMemberStates.MemberState")
-        assertThat(foreignCountry, Matchers.equalTo("CA"))
+        assertThat(foreignCountry, containsString("CA"))
     }
 
     @Unroll
