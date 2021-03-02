@@ -5,17 +5,29 @@ Tests for eIDAS connector component (both eIDAS standard component and Estonia s
 ## Prerequisites
 
 1. SUT (eIDAS connector) must be deployed. It must have country CA configured to demo proxy service with idp (provided by the eIDAS demo package).
-2. Fetch the tests:
+2. ee-spservice metadata must be available. Either by deploying mock service or other means.
+3. Fetch the tests:
 
  `git clone https://github.com/e-gov/eIDAS-SpecificConnector-Test.git`
 
-3. Configure the properties file. The example file with values are given as ../src/test/resource/sample_application.properties
+## Configuration of tests
+
+1. Configure the properties file. application.properties file needs to be either in `src/test/resources` directory or its location configured with .env file in `src/test/resources` directory.
+   Example of .env file content:
+```
+configuration_base_path=/home/me/IdeaProjects/specificconnector-configuration
+configuration_path=dev-local
+```   
+The example application.properties file with default values is given ../src/test/resource/sample_application.properties
 
 Description of values:
 
 **ee-connector** - configuration parameters for the SUT (Estonian implementation of eIDAS Connector service)
+
 **ee-spservice** - configuration parameters for tests.
+
 **ca-proxyservice** - configuration parameters for receiving member state (CA) proxy service.
+
 **idp** - configuration parameters for receiving member state (CA) authentication service.
  
 | Parameter | Default |  Description |
@@ -68,13 +80,23 @@ Description of values:
 | idp.port | 8081 | Service port. | 
 | idp.responseUrl | /IdP/Response | Endpoint for response. | 
 
-4. To run the tests execute:
+## Execute tests and generate report
+
+1. To run the tests execute:
 
 `./mvnw clean test`
 
-5. Results are present in: 
+2. Results are present in: 
 
 a) Surefire plugin generates reports in ../target/surefire-reports folder.
-b) For a comprehensive test Allure is required ([instructions for download.](https://docs.qameta.io/allure/#_installing_a_commandline)). To generate the report execute:
+
+b) For a comprehensive report, Allure is required ([instructions for download.](https://docs.qameta.io/allure/#_installing_a_commandline)). To generate the report execute:
 
 `allure serve .../eidas-connector-test/allure-results/`
+
+##To see Allure report after running tests in IntelliJ
+
+Configure correct Allure results directory in IntelliJ in order to view Allure report when running tests from IntelliJ
+`Run-> Edit configurations-> Templates-> JUnit-> VM Options: -ea -Dallure.results.directory=$ProjectFileDir$/target/allure-results`
+
+And delete all existing run configurations
