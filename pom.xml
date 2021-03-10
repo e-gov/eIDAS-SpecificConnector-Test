@@ -205,11 +205,6 @@
                         <artifactId>aspectjweaver</artifactId>
                         <version>${aspectj.version}</version>
                     </dependency>
-                    <dependency>
-                        <groupId>org.apache.maven.surefire</groupId>
-                        <artifactId>surefire-junit47</artifactId>
-                        <version>${surefire-junit47.version}</version>
-                    </dependency>
                 </dependencies>
             </plugin>
             <plugin>
