@@ -61,6 +61,13 @@
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-spock</artifactId>
             <version>${allure.version}</version>
+
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
