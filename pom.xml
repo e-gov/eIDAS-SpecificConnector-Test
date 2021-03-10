@@ -21,7 +21,7 @@
         <rest-assured.version>4.2.0</rest-assured.version>
         <!-- Plugin versions -->
 
-        <maven.surefire.plugin.version>3.0.0-M5</maven.surefire.plugin.version>
+        <maven.surefire.plugin.version>3.0.0-M4</maven.surefire.plugin.version>
         <gmavenplus.plugin.version>1.7.1</gmavenplus.plugin.version>
         <build.helper.plugin.version>3.0.0</build.helper.plugin.version>
         <aspectj.version>1.9.6</aspectj.version>
