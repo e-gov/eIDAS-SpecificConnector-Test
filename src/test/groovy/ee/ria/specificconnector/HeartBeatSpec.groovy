@@ -6,6 +6,9 @@ import io.restassured.response.Response
 import org.hamcrest.Matchers
 import spock.lang.Unroll
 
+import static org.junit.Assert.assertThat
+import static org.junit.Assert.assertThat
+
 class HeartBeatSpec extends EEConnectorSpecification {
     Flow flow = new Flow(props)
 
@@ -19,23 +22,17 @@ class HeartBeatSpec extends EEConnectorSpecification {
     def "Verify heartbeat response elements"() {
         expect:
         Response heartBeat = Requests.getHeartbeat(flow)
-        heartBeat.then()
-                .body("status", Matchers.notNullValue())
-                .body("name", Matchers.notNullValue())
-                .body("version", Matchers.notNullValue())
-                .body("commitId", Matchers.notNullValue())
-                .body("commitBranch", Matchers.notNullValue())
-                .body("buildTime", Matchers.notNullValue())
-                .body("startTime", Matchers.notNullValue())
-                .body("currentTime", Matchers.notNullValue())
-                .body("dependencies[0].name", Matchers.is("igniteCluster"))
-                .body("dependencies[0].status", Matchers.is("UP"))
-                .body("dependencies[1].name", Matchers.is("truststore"))
-                .body("dependencies[1].status", Matchers.is("UP"))
-                .body("dependencies[2].name", Matchers.is("sp-eidas-eeserviceprovider-metadata"))
-                .body("dependencies[2].status", Matchers.is("UP"))
-                .body("dependencies[3].name", Matchers.is("connectorMetadata"))
-                .body("dependencies[3].status", Matchers.is("UP"))
+
+        assertThat(heartBeat.body().jsonPath().get("status").toString(), Matchers.equalTo("UP"))
+        assertThat(heartBeat.body().jsonPath().get("name"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("version"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("commitId"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("commitBranch"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("buildTime"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("startTime"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("currentTime"), Matchers.notNullValue())
+        assertThat(heartBeat.body().jsonPath().get("dependencies.name"), Matchers.hasItem("igniteCluster"))
+        assertThat(heartBeat.body().jsonPath().get("dependencies.name"), Matchers.hasItem("truststore"))
     }
 
     @Unroll
