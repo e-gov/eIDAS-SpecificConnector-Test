@@ -33,8 +33,7 @@ public class XmlUtils {
 
     private static Document parseXMLDocument(String xml) throws XMLParserException {
         InputStream is = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
-        Document doc = XMLObjectProviderRegistrySupport.getParserPool().parse(is);
-        return doc;
+        return XMLObjectProviderRegistrySupport.getParserPool().parse(is);
     }
 
     private static Unmarshaller getUnmarshaller(Element element) {

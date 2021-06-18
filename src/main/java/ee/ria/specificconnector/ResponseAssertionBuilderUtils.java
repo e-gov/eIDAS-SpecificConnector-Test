@@ -78,8 +78,7 @@ public class ResponseAssertionBuilderUtils extends ResponseBuilderBase {
 
         Encrypter samlEncrypter = new Encrypter(encryptParams, keyParams);
         samlEncrypter.setKeyPlacement(Encrypter.KeyPlacement.INLINE);
-        EncryptedAssertion encryptedAssertion = samlEncrypter.encrypt(assertion);
-        return  encryptedAssertion;
+        return samlEncrypter.encrypt(assertion);
     }
 
     protected EncryptedAssertion buildEncrAssertionWithoutSubject(Credential signCredential, Credential encCredential, String inResponseId, String recipient, DateTime issueInstant, Integer acceptableTimeMin, String loa, String givenName, String familyName, String personIdentifier, String dateOfBirth, String issuerValue, String audienceUri) throws SecurityException, SignatureException, MarshallingException, EncryptionException {

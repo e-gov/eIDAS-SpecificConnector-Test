@@ -36,10 +36,8 @@ public class SamlSignatureUtils {
             throw new RuntimeException("Signature validation in validateSignature() failed: " + e.getMessage(), e);
         } catch (CertificateNotYetValidException e) {
             //Expired certificates are used in test environment
-            return;
         } catch (CertificateExpiredException e) {
             //Expired certificates are used in test environment
-            return;
         }
     }
 

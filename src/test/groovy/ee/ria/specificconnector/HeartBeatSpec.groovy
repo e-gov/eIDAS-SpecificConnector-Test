@@ -7,7 +7,6 @@ import org.hamcrest.Matchers
 import spock.lang.Unroll
 
 import static org.junit.Assert.assertThat
-import static org.junit.Assert.assertThat
 
 class HeartBeatSpec extends EEConnectorSpecification {
     Flow flow = new Flow(props)

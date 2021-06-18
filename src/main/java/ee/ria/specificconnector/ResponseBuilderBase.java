@@ -11,8 +11,6 @@ import org.opensaml.xmlsec.signature.support.SignatureConstants;
 
 import javax.xml.namespace.QName;
 
-import static org.opensaml.saml.common.SAMLVersion.VERSION_20;
-
 public class ResponseBuilderBase {
 
     protected Status buildSuccessStatusWithStatusCode(Integer statusCodeCnt) {
@@ -57,7 +55,6 @@ public class ResponseBuilderBase {
         SubjectConfirmation subjectConf = new SubjectConfirmationBuilder().buildObject();
         subjectConf.setMethod("urn:oasis:names:tc:SAML:2.0:cm:bearer");
         SubjectConfirmationData subConfData = new SubjectConfirmationDataBuilder().buildObject();
-        subConfData.setAddress("172.24.0.1"); //TODO: this needs to be configurable probably
         subConfData.setInResponseTo(inResponseId);
         subConfData.setNotOnOrAfter(issueInstant.plusMinutes(acceptableTimeMin));
         subConfData.setRecipient(recipient);

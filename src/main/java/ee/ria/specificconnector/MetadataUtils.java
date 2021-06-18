@@ -1,7 +1,6 @@
 package ee.ria.specificconnector;
 
 import io.restassured.path.xml.XmlPath;
-import io.restassured.response.Response;
 import org.opensaml.saml.common.SignableSAMLObject;
 import org.opensaml.security.credential.CredentialSupport;
 import org.opensaml.security.x509.X509Credential;
