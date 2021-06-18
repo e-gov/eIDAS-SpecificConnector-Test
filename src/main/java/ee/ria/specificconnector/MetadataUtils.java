@@ -1,6 +1,7 @@
 package ee.ria.specificconnector;
 
 import io.restassured.path.xml.XmlPath;
+import io.restassured.response.Response;
 import org.opensaml.saml.common.SignableSAMLObject;
 import org.opensaml.security.credential.CredentialSupport;
 import org.opensaml.security.x509.X509Credential;
@@ -36,5 +37,10 @@ public class MetadataUtils {
         } catch (CertificateExpiredException e) {
             throw new RuntimeException("Certificate is expired: " + e.getMessage(), e);
         }
+    }
+
+    static java.security.cert.X509Certificate retrieveSigningCertificate(String metadataResponse) throws CertificateException {
+        XmlPath metadataXml = new XmlPath(metadataResponse);
+        return X509Support.decodeCertificate(metadataXml.getString("EntityDescriptor.Signature.KeyInfo.X509Data.X509Certificate"));
     }
 }

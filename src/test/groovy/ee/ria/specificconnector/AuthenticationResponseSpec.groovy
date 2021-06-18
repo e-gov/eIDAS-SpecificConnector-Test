@@ -24,7 +24,6 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     def setup() {
         flow.domesticSpService.signatureCredential = signatureCredential
         flow.domesticSpService.encryptionCredential = encryptionCredential
-        flow.domesticConnector.connectorSigningCertificate = connectorSigningCertificate
         flow.domesticSpService.encryptionCertificate = encryptionCertificate
         flow.cookieFilter = new CookieFilter()
     }
@@ -206,7 +205,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         String samlResponseXML = SamlResponseUtils.decodeSamlResponse(authenticationResponse)
-        SamlSignatureUtils.validateSignature(samlResponseXML, connectorSigningCertificate)
+        SamlSignatureUtils.validateSignature(samlResponseXML, MetadataUtils.retrieveSigningCertificate(Requests.getMetadataBody(flow)))
         XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"))
         String algorithm = xmlPath.getString("Response.Signature.SignedInfo.SignatureMethod.@Algorithm")
         assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", algorithm)
@@ -223,7 +222,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
-        SamlSignatureUtils.validateSignature(samlAssertion.getSignature(), connectorSigningCertificate)
+        SamlSignatureUtils.validateSignature(samlAssertion.getSignature(), MetadataUtils.retrieveSigningCertificate(Requests.getMetadataBody(flow)))
         assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", samlAssertion.getSignature().getSignatureAlgorithm())
     }
 

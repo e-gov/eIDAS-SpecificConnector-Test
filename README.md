@@ -1,3 +1,5 @@
+<img src='img/eu_regional_development_fund_horizontal.jpg'>
+
 # eIDAS Connector integration tests
 
 Tests for eIDAS connector component (both eIDAS standard component and Estonia specific component)
@@ -40,20 +42,16 @@ Description of values:
 | ee-connector.authenticationRequestUrl | /SpecificConnector/ServiceProvider | Endpoint for authentication start. |
 | ee-connector.eidasResponseUrl | /SpecificConnector/ConnectorResponse | Endpoint for returning authentication response to specific component. |
 | ee-connector.eidasColleagueResponseUrl | /EidasNode/ColleagueResponse | Endpoint for response in eIDAS node component| 
-| ee-connector.keystore.file | dev-local/eidas-specificconnector/vault/secrets/eidas/responder-metadata-keystore.p12 | Keystore location for metada signing keys and certificates. |
-| ee-connector.keystore.password | changeit | Keystore password. |
-| ee-connector.keystore.responseSigningKeyId | eidas-specificconnector-responder-metadata | Metada signing key id. |
-| ee-connector.keystore.responseSigningPassword | changeit | Private key password. |
-| ee-connector.truststore.file | dev-local/eidas-specificconnector/vault/secrets/eidas/responder-metadata-truststore.p12 | Truststore for accepted service provider metadata signing certificates. |
+| ee-connector.truststore.file | truststore.p12 | Truststore for accepted service provider metadata signing certificates. |
 | ee-connector.truststore.password | changeit | Truststore password. | 
-| ee-connector.truststore.spRequestSigningKeyId | eidas-eeserviceprovider-metadata | Key id used for service provider request signing.|
+| ee-connector.truststore.spRequestSigningKeyId | eidas-eeserviceprovider-signing | Key id used for service provider request signing.|
 | ee-spservice.providerName | eidas-eeserviceprovider | Service provider name for usage in tests. Must be trusted by Connector service | 
 | ee-spservice.protocol | https | Service protocol. | 
 | ee-spservice.host | eidas-eeserviceprovider | Service URL. | 
 | ee-spservice.port | 8889 | Service port. | 
 | ee-spservice.returnUrl | /returnUrl | Return URL of service provider. | 
 | ee-spservice.metadataUrl | /metadata | Service provider metadata endpoint. | 
-| ee-spservice.keystore.file | dev-local/eidas-eeserviceprovider/keystore/saml-keystore.p12 | Keystore for signing requests. | 
+| ee-spservice.keystore.file | saml-keystore.p12 | Keystore for signing requests. | 
 | ee-spservice.keystore.password | changeit | Keystore password. | 
 | ee-spservice.keystore.requestSigningKeyId | eidas-eeserviceprovider-sign | Key id for signing requests. | 
 | ee-spservice.keystore.requestSigningKeyPassword | changeit | Password for signing key. | 

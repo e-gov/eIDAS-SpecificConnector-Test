@@ -34,8 +34,6 @@ class EEConnectorSpecification extends Specification {
     @Shared
     Credential unsupportedByConfigurationCredential
     @Shared
-    X509Certificate connectorSigningCertificate
-    @Shared
     X509Certificate spMetadataSigningCertificate
     @Shared
     String defaultContentSecurityPolicy = "block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='"
@@ -167,23 +165,6 @@ class EEConnectorSpecification extends Specification {
                 }
             }
             unsupportedByConfigurationCredential = KeystoreUtils.getCredential(unsupportedByConfigurationKeystore, props."ee-spservice.test.keystore.unsupportedByConfigurationKeyId" as String, props."ee-spservice.test.keystore.unsupportedByConfigurationKeyPassword" as String)
-        }
-        catch (Exception e) {
-            throw new RuntimeException("Something went wrong initializing credentials:", e)
-        }
-
-        try {
-            KeyStore responseSigningKeystore = KeyStore.getInstance("PKCS12")
-            if (envFile) {
-                Paths.get(envProperties.getProperty("configuration_base_path"), props.getProperty("ee-connector.keystore.file")).withInputStream {
-                    responseSigningKeystore.load(it, props.get("ee-connector.keystore.password").toString().toCharArray())
-                }
-            } else {
-                this.getClass().getResource("/${props."ee-connector.keystore.file"}").withInputStream {
-                    responseSigningKeystore.load(it, props.get("ee-connector.keystore.password").toString().toCharArray())
-                }
-            }
-            connectorSigningCertificate = (X509Certificate) responseSigningKeystore.getCertificate(props."ee-connector.keystore.responseSigningKeyId".toString())
         }
         catch (Exception e) {
             throw new RuntimeException("Something went wrong initializing credentials:", e)
