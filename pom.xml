@@ -7,7 +7,13 @@
     <groupId>ee.ria</groupId>
     <artifactId>eidas-connector-test</artifactId>
     <version>1.0-SNAPSHOT</version>
-
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
 
     <properties>
         <!-- Configurable properties -->
