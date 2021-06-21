@@ -82,7 +82,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct Issuer Format", "urn:oasis:names:tc:SAML:2.0:nameid-format:entity", xmlPath.getString("Response.Issuer.@Format"))
         assertTrue(SamlUtils.isBase64EncodedString(xmlPath.getString("Response.Signature.SignedInfo.Reference.DigestValue").replaceAll("\r\n","")))
         assertEquals("Correct StatusCode", "urn:oasis:names:tc:SAML:2.0:status:Success", xmlPath.getString("Response.Status.StatusCode.@Value"))
-        assertTrue(xmlPath.getString("Response.EncryptedAssertion").length() > 11000)
+        assertTrue(xmlPath.getString("Response.EncryptedAssertion").length() > 0)
     }
 
     @Unroll
@@ -108,7 +108,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct Issuer Format", "urn:oasis:names:tc:SAML:2.0:nameid-format:entity", xmlPath.getString("Response.Issuer.@Format"))
         assertTrue(SamlUtils.isBase64EncodedString(xmlPath.getString("Response.Signature.SignedInfo.Reference.DigestValue").replaceAll("\r\n","")))
         assertEquals("Correct StatusCode", "urn:oasis:names:tc:SAML:2.0:status:Success", xmlPath.getString("Response.Status.StatusCode.@Value"))
-        assertTrue(xmlPath.getString("Response.EncryptedAssertion").length() > 11000)
+        assertTrue(xmlPath.getString("Response.EncryptedAssertion").length() > 0)
         String[] samlResponse = authenticationResponse.getHeader("location").toURL().getQuery().split("&")[0].split("=")
         assertEquals("Correct URL attribute name SAMLResponse", "SAMLResponse", samlResponse[0])
         String[] relayState = authenticationResponse.getHeader("location").toURL().getQuery().split("&")[1].split("=")
