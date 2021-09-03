@@ -208,7 +208,9 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         SamlSignatureUtils.validateSignature(samlResponseXML, MetadataUtils.retrieveSigningCertificate(Requests.getMetadataBody(flow)))
         XmlPath xmlPath = new XmlPath(samlResponseXML).using(new XmlPathConfig("UTF-8"))
         String algorithm = xmlPath.getString("Response.Signature.SignedInfo.SignatureMethod.@Algorithm")
-        assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", algorithm)
+        assertTrue("Recommended assertion signing Algorithm is used",
+                Arrays.asList("http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1", "http://www.w3.org/2007/05/xmldsig-more#sha384-rsa-MGF1", "http://www.w3.org/2007/05/xmldsig-more#sha512-rsa-MGF1",
+                "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512").contains(algorithm))
     }
 
     @Unroll
@@ -223,7 +225,9 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         SamlSignatureUtils.validateSignature(samlAssertion.getSignature(), MetadataUtils.retrieveSigningCertificate(Requests.getMetadataBody(flow)))
-        assertEquals("Correct assertion signing Algorithm", "http://www.w3.org/2001/04/xmldsig-more#rsa-sha512", samlAssertion.getSignature().getSignatureAlgorithm())
+        assertTrue("Recommended assertion signing Algorithm is used",
+                Arrays.asList("http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1", "http://www.w3.org/2007/05/xmldsig-more#sha384-rsa-MGF1", "http://www.w3.org/2007/05/xmldsig-more#sha512-rsa-MGF1",
+                        "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512").contains(samlAssertion.getSignature().getSignatureAlgorithm()))
     }
 
     @Unroll
