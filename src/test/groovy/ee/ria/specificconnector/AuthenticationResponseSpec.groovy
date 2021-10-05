@@ -9,6 +9,7 @@ import org.apache.commons.validator.routines.InetAddressValidator
 import org.hamcrest.Matchers
 import org.opensaml.saml.saml2.core.Assertion
 import org.opensaml.security.x509.X509Support
+import spock.lang.Ignore
 import spock.lang.Unroll
 
 import java.security.cert.X509Certificate
@@ -193,6 +194,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         REQUEST_TYPE_GET  | "token"   || 400        || "Duplicate request parameter 'token'"
     }
 
+    @Ignore ("AUT-749")
     @Unroll
     @Feature("SAML_RESPONSE_SIGNING")
     def "saml response signed with correct key"() {
@@ -213,6 +215,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
                 "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512").contains(algorithm))
     }
 
+    @Ignore ("AUT-749")
     @Unroll
     @Feature("SAML_ASSERTION_SIGNING")
     def "saml response assertion signed with correct key"() {
