@@ -108,8 +108,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
         where:
         param1        | param2        | param2Value | param3       | param3Value                                                                         || statusCode || message
-        _             | _             | _           | _            | _                                                                                   || 400        || "Required String parameter 'SAMLRequest' is not present"
-        "SAMLRequest" | _             | _           | _            | _                                                                                   || 400        || "Required String parameter 'country' is not present"
+        _             | _             | _           | _            | _                                                                                   || 400        || "Required request parameter 'SAMLRequest' for method parameter type String is not present"
+        "SAMLRequest" | _             | _           | _            | _                                                                                   || 400        || "Required request parameter 'country' for method parameter type String is not present"
         "SAMLRequest" | "country"     | _           | _            | _                                                                                   || 400        || "post.country: must match "
         "SAMLRequest" | "country"     | "CAA"       | _            | _                                                                                   || 400        || "post.country: must match "
         "SAMLRequest" | "country"     | "CA"        | "RelayState" | "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1" || 400        || "post.RelayState: must match"
