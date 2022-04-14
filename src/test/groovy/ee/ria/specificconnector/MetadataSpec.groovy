@@ -56,17 +56,19 @@ class MetadataSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("SP_METADATA_CONTACT_INFO")
-    @Feature("SP_METADATA_EXTENSIONS_SPTYPE")
+    @Feature("SP_METADATA_EXTENSIONS_REQUESTERID")
     def "Metadata contact info validation"() {
         expect:
         String metadataXml = Requests.getMetadataBody(flow)
         XmlPath xmlPath = new XmlPath(metadataXml)
         String spType = xmlPath.getString("EntityDescriptor.Extensions.SPType")
+        String requesterIdFlag = xmlPath.getString("EntityDescriptor.Extensions.EntityAttributes.Attribute.AttributeValue");
         String organization = xmlPath.getString("EntityDescriptor.Organization")
         String support = xmlPath.getString("**.find {it.@contactType == 'support'}")
         String technical = xmlPath.getString("**.find {it.@contactType == 'technical'}")
 
-        assertThat(spType, Matchers.equalTo("public"))
+        assertThat(spType, Matchers.emptyString())
+        assertThat(requesterIdFlag, Matchers.equalTo("http://eidas.europa.eu/entity-attributes/termsofaccess/requesterid"))
         assertThat(organization, Matchers.equalTo("Estonian Information System AuthorityRIAhttps://www.ria.ee"))
         assertThat(support, Matchers.equalTo("RIADeskHelphelp@ria.ee+372 663 0230"))
         assertThat(technical, Matchers.equalTo("RIADeskHelphelp@ria.ee+372 663 0230"))

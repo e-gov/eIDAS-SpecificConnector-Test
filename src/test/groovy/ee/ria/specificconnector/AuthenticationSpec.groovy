@@ -198,6 +198,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
         "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
+        "RequesterID"  | _                                                       || "SAML request is invalid - no RequesterID"
+        "SPType"       | _                                                       || "SAML request is invalid - no SPType"
         "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
         "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
     }
@@ -228,6 +230,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
         "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
         "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
+        "RequesterID"  | _                                                       || "SAML request is invalid - no RequesterID"
+        "SPType"       | _                                                       || "SAML request is invalid - no SPType"
         "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
         "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
     }
@@ -244,9 +248,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         where:
         attributeName  | attributeValue
         "ProviderName" | "illegal-provider"
-        "SPType"       | _
         "ProviderName" | _
-        "ProviderName" | RandomStringUtils.random(94500, true, true)
+        "ProviderName" | RandomStringUtils.random(93500, true, true)
         "IssueInstant" | "2030-11-08T19:29:47.759Z"
     }
 

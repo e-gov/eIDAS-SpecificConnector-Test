@@ -15,6 +15,7 @@ class Steps {
     static String REQUEST_TYPE_POST = "post"
     static String REQUEST_TYPE_GET = "get"
     static String SP_TYPE = "public"
+    static String REQUESTER_ID = "TEST-REQUESTER-ID"
     static String IDP_USERNAME = "xavi"
     static String IDP_PASSWORD = "creus"
     static String EIDASLOA = "E"
@@ -30,7 +31,8 @@ class Steps {
                 LOA_HIGH,
                 AuthnContextComparisonTypeEnumeration.MINIMUM,
                 NameIDType.UNSPECIFIED,
-                SP_TYPE)
+                SP_TYPE,
+                REQUESTER_ID)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         flow.domesticSpService.samlRequestId = request.getID()
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
@@ -40,14 +42,14 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request with invalid issuer metadata url")
-    static String getAuthnRequestWithInvalidIssuer(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE) {
+    static String getAuthnRequestWithInvalidIssuer(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE, String requesterId = REQUESTER_ID) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
                 flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 "https://example.net/EidasNode/ConnectorMetadata",
-                loa, comparison, nameIdFormat, spType)
+                loa, comparison, nameIdFormat, spType, requesterId)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
@@ -56,14 +58,14 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request without extensions")
-    static String getAuthnRequestWithoutExtensions(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE) {
+    static String getAuthnRequestWithoutExtensions(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE, String requesterId = REQUESTER_ID) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParamsWithoutExtensions(flow.domesticSpService.signatureCredential,
                 flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
-                loa, comparison, nameIdFormat, spType)
+                loa, comparison, nameIdFormat, spType, requesterId)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
@@ -72,14 +74,14 @@ class Steps {
     }
 
     @Step("Create Natural Person authentication request with unsupported attribute")
-    static String getAuthnRequestWithUnsupportedAttribute(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE) {
+    static String getAuthnRequestWithUnsupportedAttribute(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE, String requesterId = REQUESTER_ID) {
 
         AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParamsWithUnsupportedAttribute(flow.domesticSpService.signatureCredential,
                 flow.domesticSpService.providerName,
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
-                loa, comparison, nameIdFormat, spType)
+                loa, comparison, nameIdFormat, spType, requesterId)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
@@ -95,7 +97,7 @@ class Steps {
                 flow.domesticConnector.fullAuthenticationRequestUrl,
                 flow.domesticSpService.fullReturnUrl,
                 flow.domesticSpService.fullMetadataUrl,
-                LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM, NameIDType.UNSPECIFIED, SP_TYPE)
+                LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM, NameIDType.UNSPECIFIED, SP_TYPE, REQUESTER_ID)
         String stringResponse = OpenSAMLUtils.getXmlString(request)
         Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
 
@@ -116,6 +118,7 @@ class Steps {
                 LOA_HIGH, AuthnContextComparisonTypeEnumeration.MINIMUM,
                 NameIDType.UNSPECIFIED,
                 SP_TYPE,
+                REQUESTER_ID,
                 attributeName,
                 attributeValue,
                 flow.domesticSpService.metadataCredential)

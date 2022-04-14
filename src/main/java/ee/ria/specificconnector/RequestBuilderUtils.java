@@ -16,7 +16,13 @@ import javax.xml.namespace.QName;
 
 public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
 
-    public AuthnRequest buildLegalAuthnRequest(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa) {
+    public AuthnRequest buildLegalAuthnRequest(
+            Credential signCredential,
+            String providerName,
+            String destination,
+            String consumerServiceUrl,
+            String issuerValue,
+            String loa) {
         try {
             Signature signature = prepareSignature(signCredential);
             DateTime timeNow = new DateTime();
@@ -43,7 +49,17 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
-    public AuthnRequest buildAuthnRequestParams(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
+    public AuthnRequest buildAuthnRequestParams(
+            Credential signCredential,
+            String providerName,
+            String destination,
+            String consumerServiceUrl,
+            String issuerValue,
+            String loa,
+            AuthnContextComparisonTypeEnumeration comparison,
+            String nameId,
+            String spType,
+            String requesterId) {
         try {
             Signature signature = prepareSignature(signCredential);
             DateTime timeNow = new DateTime();
@@ -61,7 +77,7 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
                 authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
             }
             authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
-            authnRequest.setExtensions(buildExtensions(spType));
+            authnRequest.setExtensions(buildExtensions(spType, requesterId));
             authnRequest.setSignature(signature);
             XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
             Signer.signObject(signature);
@@ -72,7 +88,17 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
-    public AuthnRequest buildAuthnRequestParamsWithoutExtensions(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
+    public AuthnRequest buildAuthnRequestParamsWithoutExtensions(
+            Credential signCredential,
+            String providerName,
+            String destination,
+            String consumerServiceUrl,
+            String issuerValue,
+            String loa,
+            AuthnContextComparisonTypeEnumeration comparison,
+            String nameId,
+            String spType,
+            String requesterId) {
         try {
             Signature signature = prepareSignature(signCredential);
             DateTime timeNow = new DateTime();
@@ -90,7 +116,7 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
                 authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
             }
             authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
-            authnRequest.setExtensions(buildEmptyExtensions(spType));
+            authnRequest.setExtensions(buildEmptyExtensions(spType, requesterId));
             authnRequest.setSignature(signature);
             XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
             Signer.signObject(signature);
@@ -101,7 +127,20 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
-    public AuthnRequest buildAuthnRequestWithMissingAttribute(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType, String attributeName, Object attributeValue, Credential anotherCredential) {
+    public AuthnRequest buildAuthnRequestWithMissingAttribute(
+            Credential signCredential,
+            String providerName,
+            String destination,
+            String consumerServiceUrl,
+            String issuerValue,
+            String loa,
+            AuthnContextComparisonTypeEnumeration comparison,
+            String nameId,
+            String spType,
+            String requesterId,
+            String attributeName,
+            Object attributeValue,
+            Credential anotherCredential) {
         try {
             Signature signature = prepareSignature(signCredential);
             Signature anotherSignature = prepareSignature(anotherCredential);
@@ -176,15 +215,22 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
                 }
             }
             authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
+            String spTypeExtension = null, requesterIdExtension = null;
             if (attributeName.equals("SPType")) {
                 if (attributeValue != null) {
-                    authnRequest.setExtensions(buildExtensions(attributeValue.toString()));
-                } else {
-                    authnRequest.setExtensions(buildExtensionsWithoutSPType());
+                    spTypeExtension = attributeValue.toString();
                 }
             } else {
-                authnRequest.setExtensions(buildExtensions(spType));
+                spTypeExtension = spType;
             }
+            if (attributeName.equals("RequesterID")) {
+                if (attributeValue != null) {
+                    requesterIdExtension = attributeValue.toString();
+                }
+            } else {
+                requesterIdExtension = requesterId;
+            }
+            authnRequest.setExtensions(buildExtensions(spTypeExtension, requesterIdExtension));
             if (attributeName.equals("Signature")) {
                 if (attributeValue != null) {
                     authnRequest.setSignature(anotherSignature);
@@ -203,7 +249,17 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
-    public AuthnRequest buildAuthnRequestParamsWithUnsupportedAttribute(Credential signCredential, String providerName, String destination, String consumerServiceUrl, String issuerValue, String loa, AuthnContextComparisonTypeEnumeration comparison, String nameId, String spType) {
+    public AuthnRequest buildAuthnRequestParamsWithUnsupportedAttribute(
+            Credential signCredential,
+            String providerName,
+            String destination,
+            String consumerServiceUrl,
+            String issuerValue,
+            String loa,
+            AuthnContextComparisonTypeEnumeration comparison,
+            String nameId,
+            String spType,
+            String requesterId) {
         try {
             Signature signature = prepareSignature(signCredential);
             DateTime timeNow = new DateTime();
@@ -221,7 +277,7 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
                 authnRequest.setNameIDPolicy(buildNameIdPolicy(nameId));
             }
             authnRequest.setRequestedAuthnContext(buildRequestedAuthnContext(loa, comparison));
-            authnRequest.setExtensions(buildExtensionsWithUnsupportedAttribute(spType));
+            authnRequest.setExtensions(buildExtensionsWithUnsupportedAttribute(spType, requesterId));
             authnRequest.setSignature(signature);
             XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest).marshall(authnRequest);
             Signer.signObject(signature);
@@ -232,12 +288,19 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         }
     }
 
-    private Extensions buildExtensions(String spTypeExtension) {
+    private Extensions buildExtensions(String spTypeExtension, String requesterIdExtension) {
         Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
 
-        XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
-        spType.setTextContent(spTypeExtension);
-        extensions.getUnknownXMLObjects().add(spType);
+        if (spTypeExtension != null) {
+            XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
+            spType.setTextContent(spTypeExtension);
+            extensions.getUnknownXMLObjects().add(spType);
+        }
+        if (requesterIdExtension != null) {
+            XSAny requesterId = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequesterID", "eidas");
+            requesterId.setTextContent(requesterIdExtension);
+            extensions.getUnknownXMLObjects().add(requesterId);
+        }
 
         XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
 
@@ -251,35 +314,32 @@ public class RequestBuilderUtils extends ResponseAssertionBuilderUtils {
         return extensions;
     }
 
-    private Extensions buildEmptyExtensions(String spTypeExtension) {
+    private Extensions buildEmptyExtensions(String spTypeExtension, String requesterIdExtension) {
         Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
 
         XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
         spType.setTextContent(spTypeExtension);
         extensions.getUnknownXMLObjects().add(spType);
 
+        XSAny requesterId = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequesterID", "eidas");
+        requesterId.setTextContent(requesterIdExtension);
+        extensions.getUnknownXMLObjects().add(requesterId);
+
         XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
         extensions.getUnknownXMLObjects().add(requestedAttributes);
         return extensions;
     }
 
-    private Extensions buildExtensionsWithoutSPType() {
-        Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
-        XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("PersonIdentifier", "http://eidas.europa.eu/attributes/naturalperson/PersonIdentifier", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FamilyName", "http://eidas.europa.eu/attributes/naturalperson/CurrentFamilyName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("FirstName", "http://eidas.europa.eu/attributes/naturalperson/CurrentGivenName", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        requestedAttributes.getUnknownXMLObjects().add(buildRequestedAttribute("DateOfBirth", "http://eidas.europa.eu/attributes/naturalperson/DateOfBirth", "urn:oasis:names:tc:SAML:2.0:attrname-format:uri", true));
-        extensions.getUnknownXMLObjects().add(requestedAttributes);
-        return extensions;
-    }
-
-    private Extensions buildExtensionsWithUnsupportedAttribute(String spTypeExtension) {
+    private Extensions buildExtensionsWithUnsupportedAttribute(String spTypeExtension, String requesterIdExtension) {
         Extensions extensions = OpenSAMLUtils.buildSAMLObject(Extensions.class);
 
         XSAny spType = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "SPType", "eidas");
         spType.setTextContent(spTypeExtension);
         extensions.getUnknownXMLObjects().add(spType);
+
+        XSAny requesterId = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequesterID", "eidas");
+        requesterId.setTextContent(requesterIdExtension);
+        extensions.getUnknownXMLObjects().add(requesterId);
 
         XSAny requestedAttributes = new XSAnyBuilder().buildObject("http://eidas.europa.eu/saml-extensions", "RequestedAttributes", "eidas");
 
