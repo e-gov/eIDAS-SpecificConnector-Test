@@ -56,6 +56,7 @@ class MetadataSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("SP_METADATA_CONTACT_INFO")
+    @Feature("SP_METADATA_EXTENSIONS_SPTYPE")
     @Feature("SP_METADATA_EXTENSIONS_REQUESTERID")
     def "Metadata contact info validation"() {
         expect:
