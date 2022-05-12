@@ -30,7 +30,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
-    def "request authentication with post"() {
+    def "request authentication with post, public SPType"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
 
@@ -53,7 +53,30 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
     @Unroll
     @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
-    def "request authentication with get"() {
+    def "request authentication with post, private SPType"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithSpType(flow, "private")
+
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
+        assertThat(response.getStatusCode(), Matchers.equalTo(200))
+        String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
+        String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
+
+        Response response1 = Requests.sendLightTokenRequestToEidas(flow, lightTokenRequestUrl, lightTokenForRequest)
+        flow.setRequestMessage(response1.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value"))
+        flow.setNextEndpoint(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action"))
+
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
+
+        Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 200, response10.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(response10, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
+    def "request authentication with get, public SPType"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
         String relayState = "ABC-" + RandomStringUtils.random(76, true, true)
@@ -66,6 +89,27 @@ class AuthenticationSpec extends EEConnectorSpecification {
 
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         
+        Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, response10.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(response10, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_SAMLREQUEST_VALID_SIGNATURE")
+    def "request authentication with get, private SPType"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithSpType(flow, "private")
+        String relayState = "ABC-" + RandomStringUtils.random(76, true, true)
+
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest, "RelayState", relayState)
+        assertEquals("Correct HTTP status code is returned", 302, response.statusCode())
+        Response response1 = Steps.followRedirect(flow, response)
+        flow.setNextEndpoint(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action"))
+        flow.setRequestMessage(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value"))
+
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+
         Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 302, response10.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(response10, flow.domesticSpService.encryptionCredential)

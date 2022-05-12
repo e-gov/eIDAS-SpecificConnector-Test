@@ -41,6 +41,27 @@ class Steps {
         return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
     }
 
+    @Step("Create Natural Person authentication request and specify SPType")
+    static String getAuthnRequestWithSpType(Flow flow, String spType) {
+
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
+                flow.domesticSpService.providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
+                LOA_HIGH,
+                AuthnContextComparisonTypeEnumeration.MINIMUM,
+                NameIDType.UNSPECIFIED,
+                spType,
+                REQUESTER_ID)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        flow.domesticSpService.samlRequestId = request.getID()
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+
+        SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
     @Step("Create Natural Person authentication request with invalid issuer metadata url")
     static String getAuthnRequestWithInvalidIssuer(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE, String requesterId = REQUESTER_ID) {
 
