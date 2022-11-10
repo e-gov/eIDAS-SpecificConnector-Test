@@ -2,8 +2,9 @@ package ee.ria.specificconnector
 
 import io.qameta.allure.Feature
 import io.restassured.filter.cookie.CookieFilter
+import io.restassured.path.xml.XmlPath
 import io.restassured.response.Response
-import org.hamcrest.Matchers
+import static org.hamcrest.CoreMatchers.*
 import org.opensaml.saml.saml2.core.Assertion
 import spock.lang.Unroll
 
@@ -35,7 +36,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String samlRequest = Steps.getAuthnRequest(flow)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
-        assertThat(response.getStatusCode(), Matchers.equalTo(200))
+        assertThat(response.getStatusCode(), equalTo(200))
         String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
         String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
 
@@ -58,7 +59,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String samlRequest = Steps.getAuthnRequestWithSpType(flow, "private")
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
-        assertThat(response.getStatusCode(), Matchers.equalTo(200))
+        assertThat(response.getStatusCode(), equalTo(200))
         String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
         String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
 
@@ -117,14 +118,81 @@ class AuthenticationSpec extends EEConnectorSpecification {
     }
 
     @Unroll
+    @Feature("AUTHENTICATION_REQUEST_ATTRIBUTES_CHECK")
+    def "validate authentication request SAML elements, SPType #spType"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithSpType(flow, spType)
+
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
+
+        String lightTokenForRequest = response.getBody().htmlPath().getString("**.find { it.@name == 'token' }.@value")
+        String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
+
+        Response response1 = Requests.sendLightTokenRequestToEidas(flow, lightTokenRequestUrl, lightTokenForRequest)
+
+        String samlToken = response1.getBody().htmlPath().getString("**.findAll { it.@name == 'SAMLRequest' }[0].@value")
+        String redirectUrl = response1.getBody().htmlPath().getString("**.findAll { it.@name == 'redirectFormNoJs' }[0].@action")
+
+        String samlResponse = SamlUtils.decodeBase64(samlToken)
+        XmlPath xmlPath = new XmlPath(samlResponse)
+
+        String destination = xmlPath.getString("AuthnRequest.@Destination")
+        String forceAuthn = xmlPath.getString("AuthnRequest.@ForceAuthn")
+        String isPassive = xmlPath.getString("AuthnRequest.@IsPassive")
+        String providerName = xmlPath.getString("AuthnRequest.@ProviderName")
+        String version = xmlPath.getString("AuthnRequest.@Version")
+        String issuer = xmlPath.getString("AuthnRequest.Issuer")
+        String issuerFormat = xmlPath.getString("AuthnRequest.Issuer.@Format")
+        String digest = xmlPath.getString("AuthnRequest.Signature.SignedInfo.Reference.DigestValue")
+        String signatureValue = xmlPath.getString("AuthnRequest.Signature.SignatureValue")
+        String certificate = xmlPath.getString("AuthnRequest.Signature.KeyInfo.X509Data.X509Certificate")
+        String allowCreate = xmlPath.getString("AuthnRequest.NameIDPolicy.@AllowCreate")
+        String comparison = xmlPath.getString("AuthnRequest.RequestedAuthnContext.@Comparison")
+        String authnContextClassRef = xmlPath.getString("AuthnRequest.RequestedAuthnContext.AuthnContextClassRef")
+        String serviceProviderType = xmlPath.getString("AuthnRequest.Extensions.SPType")
+        String personIdentifier = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[0].@FriendlyName")
+        String familyName = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[1].@FriendlyName")
+        String firstName = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[2].@FriendlyName")
+        String dateOfBirth = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[3].@FriendlyName")
+        String isRequired = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute.@isRequired")
+        String requesterID = xmlPath.getString("AuthnRequest.Scoping.RequesterID")
+
+        assertEquals("Correct Destination URL is returned", redirectUrl, destination)
+        assertEquals("Correct ForceAuthn value is returned", "true", forceAuthn)
+        assertEquals("Correct IsPassive value is returned", "false", isPassive)
+        assertEquals("Correct providerName is returned", flow.domesticSpService.providerName.toString(), providerName)
+        assertEquals("Correct version is returned", "2.0", version)
+        assertEquals("Correct issuer is returned", flow.domesticConnector.fullEidasNodeMetadataUrl.toString(), issuer)
+        assertEquals("Correct issuerFormat is returned", "urn:oasis:names:tc:SAML:2.0:nameid-format:entity", issuerFormat)
+        assertThat("Digest is present", digest, notNullValue())
+        assertThat("Signature is present", signatureValue, notNullValue())
+        assertThat("Certificate is present", certificate, notNullValue())
+        assertEquals("Correct SPType is returned", spType, serviceProviderType)
+        assertEquals("Correct RequestedAttribute is returned", "PersonIdentifier", personIdentifier)
+        assertEquals("Correct RequestedAttribute is returned", "FamilyName", familyName)
+        assertEquals("Correct RequestedAttribute is returned", "FirstName", firstName)
+        assertEquals("Correct RequestedAttribute is returned", "DateOfBirth", dateOfBirth)
+        assertThat("RequesterAttributes are required", isRequired, not(containsString(("false"))))
+        assertEquals("Correct AllowCreate value is returned", "true", allowCreate)
+        assertEquals("Correct RequestedAuthnContext comparison value is returned", "minimum", comparison)
+        assertThat("AuthnContextClassRef is present", authnContextClassRef, notNullValue())
+        assertEquals("Correct RequesterID is returned", requester, requesterID)
+
+        where:
+        spType    | requester
+        "public"  | ""
+        "private" | "TEST-REQUESTER-ID"
+    }
+
+    @Unroll
     @Feature("AUTHENTICATION_ENDPOINT")
     def "request authentication with multiple instances"() {
         expect:
         Response response = Requests.startAuthenticationWithDuplicateParams(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
         assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
         additionalParam || statusCode || message
@@ -147,8 +215,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthenticationWithParameters(flow, REQUEST_TYPE_POST, map)
         assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message"), startsWith(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
         param1        | param2        | param2Value | param3       | param3Value                                                                         || statusCode || message
@@ -169,8 +237,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - issuer not allowed"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - issuer not allowed"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
     }
 
     @Unroll
@@ -181,8 +249,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - no requested attributes"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - no requested attributes"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
     }
 
     @Unroll
@@ -193,8 +261,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - unsupported requested attributes"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - unsupported requested attributes"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
     }
 
     @Unroll
@@ -205,8 +273,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("SAML request is invalid - invalid signature"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - invalid signature"))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
         credential                           || statusCode
@@ -225,8 +293,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message"), startsWith(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
         attributeName  | attributeValue                                          || message
@@ -257,8 +325,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
         assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message"), Matchers.startsWith(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
+        assertThat(response.body().jsonPath().get("message"), startsWith(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
         attributeName  | attributeValue                                          || message
@@ -306,7 +374,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
         assertEquals("Correct HTTP status code is returned", 200, response.statusCode())
         String lightTokenRequestUrl = response.getBody().htmlPath().getString("**.find { it.@method == 'post' }.@action")
-        assertThat(lightTokenRequestUrl, Matchers.containsStringIgnoringCase("/EidasNode/SpecificConnectorRequest"))
+        assertThat(lightTokenRequestUrl, containsStringIgnoringCase("/EidasNode/SpecificConnectorRequest"))
         String htmlBody = response.getBody().prettyPrint()
         assertTrue(htmlBody.contains("</noscript>"))
 
@@ -315,7 +383,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertEquals("Correct IssuerName in lightToken", "specificCommunicationDefinitionConnectorRequest", lightToken[0])
         assertTrue(SamlUtils.isValidUUID(lightToken[1]))
         assertTrue(SamlUtils.isValidDateTime(lightToken[2]))
-        assertThat(Base64.getDecoder().decode(lightToken[3]).size(), Matchers.equalTo(32))
+        assertThat(Base64.getDecoder().decode(lightToken[3]).size(), equalTo(32))
         assertEquals("Correct Content-Type is returned", "text/html;charset=UTF-8", response.getContentType())
     }
 
@@ -332,13 +400,13 @@ class AuthenticationSpec extends EEConnectorSpecification {
         URL locationUrl = response.then().extract().response().getHeader("location").toURL()
         String[] locationQuery = locationUrl.getQuery().split("=")
         assertEquals("Correct location attribute name", "token", locationQuery[0])
-        assertThat(locationUrl.getPath(), Matchers.containsStringIgnoringCase("/EidasNode/SpecificConnectorRequest"))
+        assertThat(locationUrl.getPath(), containsStringIgnoringCase("/EidasNode/SpecificConnectorRequest"))
 
         String[] lightToken = new String(Base64.getDecoder().decode(locationQuery[1]), StandardCharsets.UTF_8).split("\\|")
         assertEquals("Correct IssuerName in lightToken", "specificCommunicationDefinitionConnectorRequest", lightToken[0])
         assertTrue(SamlUtils.isValidUUID(lightToken[1]))
         assertTrue(SamlUtils.isValidDateTime(lightToken[2]))
-        assertThat(Base64.getDecoder().decode(lightToken[3]).size(), Matchers.equalTo(32))
+        assertThat(Base64.getDecoder().decode(lightToken[3]).size(), equalTo(32))
     }
 
     @Unroll
@@ -348,6 +416,6 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        response.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
+        response.then().header("Content-Security-Policy", is(defaultContentSecurityPolicy))
     }
 }

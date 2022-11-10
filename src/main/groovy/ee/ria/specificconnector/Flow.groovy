@@ -61,6 +61,7 @@ class DomesticConnector {
     String port
     String protocol
     String metadataUrl
+    String eidasNodeMetadataUrl
     String heartbeatUrl
     String eidasResponseUrl
     String authenticationRequestUrl
@@ -68,6 +69,7 @@ class DomesticConnector {
     X509Certificate connectorSigningCertificate
 
     @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
+    @Lazy fullEidasNodeMetadataUrl = "${protocol}://${host}${eidasNodeMetadataUrl}"
     @Lazy metadataUrlWithoutPort = "${protocol}://${host}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
     @Lazy fullAuthenticationRequestUrlWithoutPort = "${protocol}://${host}${authenticationRequestUrl}"
@@ -80,6 +82,7 @@ class DomesticConnector {
         this.port = properties."ee-connector.port"
         this.protocol = properties."ee-connector.protocol"
         this.metadataUrl = properties."ee-connector.metadataUrl"
+        this.eidasNodeMetadataUrl = properties."ee-connector.eidasNodeMetadataUrl"
         this.authenticationRequestUrl = properties."ee-connector.authenticationRequestUrl"
         this.heartbeatUrl = properties."ee-connector.heartbeatUrl"
         this.eidasResponseUrl = properties."ee-connector.eidasResponseUrl"
