@@ -4,6 +4,8 @@ import io.qameta.allure.Feature
 import io.restassured.filter.cookie.CookieFilter
 import io.restassured.path.xml.XmlPath
 import io.restassured.response.Response
+import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration
+
 import static org.hamcrest.CoreMatchers.*
 import org.opensaml.saml.saml2.core.Assertion
 import spock.lang.Unroll
@@ -89,7 +91,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         flow.setRequestMessage(response1.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value"))
 
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
-        
+
         Response response10 = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 302, response10.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(response10, flow.domesticSpService.encryptionCredential)
@@ -242,6 +244,41 @@ class AuthenticationSpec extends EEConnectorSpecification {
     }
 
     @Unroll
+    @Feature("AUTHENTICATION_REQUEST_SP_CHECK")
+    def "request authentication with invalid level of assurance: comparison type minimum and loa #loa"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithLoa(flow, loa, AuthnContextComparisonTypeEnumeration.MINIMUM)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
+        assertEquals("Correct content type", "application/json", response.getContentType())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+
+        where:
+        loa              | statusCode | message
+        ""               | 500        | "Something went wrong internally. Please consult server logs for further details."
+        "LOA_INVALID"    | 400        | "SAML request is invalid - invalid Level of Assurance"
+        LOA_NON_NOTIFIED | 400 | "SAML request is invalid - invalid Level of Assurance"
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REQUEST_SP_CHECK")
+    def "request authentication with invalid level of assurance: comparison type exact and loa #loa"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithLoa(flow, loa, AuthnContextComparisonTypeEnumeration.EXACT)
+        Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
+        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
+        assertEquals("Correct content type", "application/json", response.getContentType())
+        assertThat(response.body().jsonPath().get("message").toString(), equalTo(message))
+        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+
+        where:
+        loa           | statusCode | message
+        ""            | 500        | "Something went wrong internally. Please consult server logs for further details."
+        "LOA_INVALID" | 500        | "Something went wrong internally. Please consult server logs for further details."
+    }
+
+    @Unroll
     @Feature("AUTHENTICATION_REQUEST_ATTRIBUTES_CHECK")
     def "request authentication with missing attributes"() {
         expect:
@@ -297,23 +334,23 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
-        attributeName  | attributeValue                                          || message
-        "IsPassive"    | true                                                    || "SAML request is invalid - expecting IsPassive to be false"
-        "ForceAuthn"   | _                                                       || "SAML request is invalid - expecting ForceAuthn to be true"
-        "ForceAuthn"   | false                                                   || "SAML request is invalid - expecting ForceAuthn to be true"
-        "ID"           | _                                                       || "SAML request is invalid - does not conform to schema"
-        "ID"           | "31"                                                    || "SAML request is invalid - does not conform to schema"
-        "IssueInstant" | _                                                       || "SAML request is invalid - does not conform to schema"
-        "Version"      | _                                                       || "SAML request is invalid - expecting SAML Version to be 2.0"
-        "Version"      | "3.0"                                                   || "SAML request is invalid - expecting SAML Version to be 2.0"
-        "Issuer"       | _                                                       || "SAML request is invalid - missing issuer"
-        "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
-        "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
-        "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
-        "RequesterID"  | _                                                       || "SAML request is invalid - no RequesterID"
-        "SPType"       | _                                                       || "SAML request is invalid - no SPType"
-        "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
-        "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
+        attributeName  | attributeValue                                    || message
+        "IsPassive"    | true                                              || "SAML request is invalid - expecting IsPassive to be false"
+        "ForceAuthn"   | _                                                 || "SAML request is invalid - expecting ForceAuthn to be true"
+        "ForceAuthn"   | false                                             || "SAML request is invalid - expecting ForceAuthn to be true"
+        "ID"           | _                                                 || "SAML request is invalid - does not conform to schema"
+        "ID"           | "31"                                              || "SAML request is invalid - does not conform to schema"
+        "IssueInstant" | _                                                 || "SAML request is invalid - does not conform to schema"
+        "Version"      | _                                                 || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Version"      | "3.0"                                             || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Issuer"       | _                                                 || "SAML request is invalid - missing issuer"
+        "Issuer"       | "https://example.org/metadata"                    || "SAML request is invalid - issuer not allowed"
+        "Signature"    | _                                                 || "SAML request is invalid - invalid signature"
+        "Signature"    | "value"                                           || "SAML request is invalid - invalid signature"
+        "RequesterID"  | _                                                 || "SAML request is invalid - no RequesterID"
+        "SPType"       | _                                                 || "SAML request is invalid - no SPType"
+        "SPType"       | "voluntary"                                       || "SAML request is invalid - does not conform to schema"
+        "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri" || "SAML request is invalid"
     }
 
     @Unroll
@@ -329,23 +366,23 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
 
         where:
-        attributeName  | attributeValue                                          || message
-        "IsPassive"    | true                                                    || "SAML request is invalid - expecting IsPassive to be false"
-        "ForceAuthn"   | _                                                       || "SAML request is invalid - expecting ForceAuthn to be true"
-        "ForceAuthn"   | false                                                   || "SAML request is invalid - expecting ForceAuthn to be true"
-        "ID"           | _                                                       || "SAML request is invalid - does not conform to schema"
-        "ID"           | "31"                                                    || "SAML request is invalid - does not conform to schema"
-        "IssueInstant" | _                                                       || "SAML request is invalid - does not conform to schema"
-        "Version"      | _                                                       || "SAML request is invalid - expecting SAML Version to be 2.0"
-        "Version"      | "3.0"                                                   || "SAML request is invalid - expecting SAML Version to be 2.0"
-        "Issuer"       | _                                                       || "SAML request is invalid - missing issuer"
-        "Issuer"       | "https://example.org/metadata"                          || "SAML request is invalid - issuer not allowed"
-        "Signature"    | _                                                       || "SAML request is invalid - invalid signature"
-        "Signature"    | "value"                                                 || "SAML request is invalid - invalid signature"
-        "RequesterID"  | _                                                       || "SAML request is invalid - no RequesterID"
-        "SPType"       | _                                                       || "SAML request is invalid - no SPType"
-        "SPType"       | "voluntary"                                             || "SAML request is invalid - does not conform to schema"
-        "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri"       || "SAML request is invalid"
+        attributeName  | attributeValue                                    || message
+        "IsPassive"    | true                                              || "SAML request is invalid - expecting IsPassive to be false"
+        "ForceAuthn"   | _                                                 || "SAML request is invalid - expecting ForceAuthn to be true"
+        "ForceAuthn"   | false                                             || "SAML request is invalid - expecting ForceAuthn to be true"
+        "ID"           | _                                                 || "SAML request is invalid - does not conform to schema"
+        "ID"           | "31"                                              || "SAML request is invalid - does not conform to schema"
+        "IssueInstant" | _                                                 || "SAML request is invalid - does not conform to schema"
+        "Version"      | _                                                 || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Version"      | "3.0"                                             || "SAML request is invalid - expecting SAML Version to be 2.0"
+        "Issuer"       | _                                                 || "SAML request is invalid - missing issuer"
+        "Issuer"       | "https://example.org/metadata"                    || "SAML request is invalid - issuer not allowed"
+        "Signature"    | _                                                 || "SAML request is invalid - invalid signature"
+        "Signature"    | "value"                                           || "SAML request is invalid - invalid signature"
+        "RequesterID"  | _                                                 || "SAML request is invalid - no RequesterID"
+        "SPType"       | _                                                 || "SAML request is invalid - no SPType"
+        "SPType"       | "voluntary"                                       || "SAML request is invalid - does not conform to schema"
+        "NameIDPolicy" | "urn:oasis:names:tc:SAML:2.0:attrname-format:uri" || "SAML request is invalid"
     }
 
     @Unroll

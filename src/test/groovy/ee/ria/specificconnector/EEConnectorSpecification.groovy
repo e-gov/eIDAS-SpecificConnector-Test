@@ -39,6 +39,11 @@ class EEConnectorSpecification extends Specification {
     String defaultContentSecurityPolicy = "block-all-mixed-content; default-src 'self'; object-src: 'none'; frame-ancestors 'none'; script-src 'self' 'sha256-8lDeP0UDwCO6/RhblgeH/ctdBzjVpJxrXizsnIk3cEQ='"
     static String REQUEST_TYPE_POST = "post"
     static String REQUEST_TYPE_GET = "get"
+    static String REQUESTER_ID = "TEST-REQUESTER-ID"
+    static String IDP_USERNAME = "xavi"
+    static String IDP_PASSWORD = "creus"
+    static String LOA_HIGH = "http://eidas.europa.eu/LoA/high"
+    static String LOA_NON_NOTIFIED = "http://non.eidas.eu/NotNotified/LoA/1"
 
     def setupSpec() {
         InitializationService.initialize()

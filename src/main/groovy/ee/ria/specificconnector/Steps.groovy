@@ -62,6 +62,27 @@ class Steps {
         return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
     }
 
+    @Step("Create Natural Person authentication request and specify level of assurance")
+    static String getAuthnRequestWithLoa(Flow flow, String loa, comparisonType = AuthnContextComparisonTypeEnumeration.MINIMUM) {
+
+        AuthnRequest request = new RequestBuilderUtils().buildAuthnRequestParams(flow.domesticSpService.signatureCredential,
+                flow.domesticSpService.providerName,
+                flow.domesticConnector.fullAuthenticationRequestUrl,
+                flow.domesticSpService.fullReturnUrl,
+                flow.domesticSpService.fullMetadataUrl,
+                loa,
+                comparisonType as AuthnContextComparisonTypeEnumeration,
+                NameIDType.UNSPECIFIED,
+                SP_TYPE,
+                REQUESTER_ID)
+        String stringResponse = OpenSAMLUtils.getXmlString(request)
+        flow.domesticSpService.samlRequestId = request.getID()
+        Allure.addAttachment("Request", "application/xml", stringResponse, "xml")
+
+        SamlSignatureUtils.validateSamlReqSignature(stringResponse)
+        return new String(Base64.getEncoder().encode(stringResponse.getBytes()))
+    }
+
     @Step("Create Natural Person authentication request with invalid issuer metadata url")
     static String getAuthnRequestWithInvalidIssuer(Flow flow, String loa = LOA_HIGH, AuthnContextComparisonTypeEnumeration comparison = AuthnContextComparisonTypeEnumeration.MINIMUM, String nameIdFormat = NameIDType.UNSPECIFIED, String spType = SP_TYPE, String requesterId = REQUESTER_ID) {
 
@@ -155,7 +176,7 @@ class Steps {
     static void startAuthenticationFlow(Flow flow, String requestType, String samlRequest) {
         Response response = Requests.startAuthentication(flow, requestType, samlRequest)
         if (requestType.equals(REQUEST_TYPE_GET)) {
-            Response getResponse = Steps.followRedirect(flow, response)
+            Response getResponse = followRedirect(flow, response)
             flow.nextEndpoint = getResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
             flow.requestMessage = getResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")
             flow.relayState = getResponse.body().htmlPath().get("**.find {it.@id == 'relayState'}.@value")

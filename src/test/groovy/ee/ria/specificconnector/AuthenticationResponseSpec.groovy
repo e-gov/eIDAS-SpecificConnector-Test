@@ -8,6 +8,7 @@ import io.restassured.response.Response
 import org.apache.commons.validator.routines.InetAddressValidator
 import org.hamcrest.Matchers
 import org.opensaml.saml.saml2.core.Assertion
+import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration
 import org.opensaml.security.x509.X509Support
 import spock.lang.Ignore
 import spock.lang.Unroll
@@ -47,6 +48,21 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     @Unroll
     @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
     @Feature("FORWARD_SPECIFIC_RESPONSE_TO_SP")
+    def "get authentication response, get request with non-notified level of assurance"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithLoa(flow, LOA_NON_NOTIFIED, AuthnContextComparisonTypeEnumeration.EXACT)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET, IDP_USERNAME, IDP_PASSWORD, LOA_NON_NOTIFIED)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", LOA_NON_NOTIFIED, SamlUtils.getLoaValue(samlAssertion))
+        assertEquals("Correct RelayState value", flow.relayState, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
+    @Feature("FORWARD_SPECIFIC_RESPONSE_TO_SP")
     def "get authentication response post"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
@@ -58,6 +74,21 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         String relayState = authenticationResponse.body().htmlPath().get("**.find {it.@name == 'RelayState'}.@value")
         assertEquals("Correct RelayState value", flow.relayState, relayState)
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_RESPONSE_SUCCESS")
+    @Feature("FORWARD_SPECIFIC_RESPONSE_TO_SP")
+    def "get authentication response, post request with non-notified level of assurance"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithLoa(flow, LOA_NON_NOTIFIED, AuthnContextComparisonTypeEnumeration.EXACT)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST, IDP_USERNAME, IDP_PASSWORD, LOA_NON_NOTIFIED)
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
+        Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", LOA_NON_NOTIFIED, SamlUtils.getLoaValue(samlAssertion))
+        assertEquals("Correct RelayState value", flow.relayState, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
     }
 
     @Unroll
@@ -257,7 +288,26 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
         Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
-        Steps.continueAuthenticationFlowWithErrors(flow, REQUEST_TYPE_POST, "xavi", "creus", "A")
+        Steps.continueAuthenticationFlowWithErrors(flow, REQUEST_TYPE_POST, IDP_USERNAME, IDP_PASSWORD, "A")
+        Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
+        assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
+        String samlResponse = SamlResponseUtils.decodeSamlResponseFromPost(authenticationResponse)
+        XmlPath xmlPath = new XmlPath(samlResponse)
+        String inResponseTo = xmlPath.getString("Response.@InResponseTo")
+        String statusCode = xmlPath.getString("Response.Status.StatusCode.@Value")
+        String statusMessage = xmlPath.getString("Response.Status.StatusMessage")
+        assertEquals("Correct SAML status code is returned", "urn:oasis:names:tc:SAML:2.0:status:Responder", statusCode)
+        assertEquals("Correct SAML status message is returned", "202019 - Incorrect Level of Assurance in IdP response", statusMessage)
+        assertEquals("Correct InResponseTo returned", flow.domesticSpService.samlRequestId, inResponseTo)
+    }
+
+    @Unroll
+    @Feature("TRANSLATE_NODE_RESPONSE_AUTHENTICATION_FAILED")
+    def "get loa error response post: authnRequest with non-notified loa"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequestWithLoa(flow, LOA_NON_NOTIFIED, AuthnContextComparisonTypeEnumeration.EXACT)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.continueAuthenticationFlowWithErrors(flow, REQUEST_TYPE_POST, IDP_USERNAME, IDP_PASSWORD, LOA_HIGH)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
         String samlResponse = SamlResponseUtils.decodeSamlResponseFromPost(authenticationResponse)
