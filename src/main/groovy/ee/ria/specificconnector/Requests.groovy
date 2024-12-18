@@ -24,6 +24,19 @@ class Requests {
                 .extract().body().asString()
     }
 
+    @Step("Get node metadata body")
+    static String getEidasNodeMetadataBody(Flow flow) {
+        return given()
+                .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8")))
+                .relaxedHTTPSValidation()
+                .filter(new AllureRestAssured())
+                .when()
+                .get(flow.domesticConnector.fullEidasNodeMetadataUrl)
+                .then()
+                .statusCode(200)
+                .extract().body().asString()
+    }
+
     @Step("Get domestic connector metadata response")
     static ValidatableResponse getMetadataResponse(Flow flow) {
         return given()

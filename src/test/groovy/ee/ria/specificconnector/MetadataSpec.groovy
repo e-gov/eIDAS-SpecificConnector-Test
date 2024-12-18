@@ -10,7 +10,10 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
+import static ee.ria.specificconnector.MetadataUtils.*
+import static ee.ria.specificconnector.Requests.*
 import static org.hamcrest.Matchers.containsString
+import static org.hamcrest.Matchers.is
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertThat
 import spock.lang.Unroll
@@ -26,14 +29,22 @@ class MetadataSpec extends EEConnectorSpecification {
     @Feature("METADATA_REQUEST")
     def "Metadata has valid signature"() {
         expect:
-        MetadataUtils.validateMetadataSignature(Requests.getMetadataBody(flow))
+        validateMetadataSignature(getMetadataBody(flow))
+    }
+
+    @Unroll
+    @Feature("EN_METADATA_SIGNING")
+    @Feature("METADATA_REQUEST")
+    def "eIDAS Node metadata has valid signature"() {
+        expect:
+        validateMetadataSignature(getEidasNodeMetadataBody(flow))
     }
 
     @Unroll
     @Feature("SP_METADATA_RESPONSE")
     def "Metadata XML schema validation"() {
         expect:
-        ValidatableResponse validatableResponse = Requests.getMetadataResponse(flow)
+        ValidatableResponse validatableResponse = getMetadataResponse(flow)
         validatableResponse.assertThat().body(XmlXsdMatcher.matchesXsd(new File("src/test/resources/saml-schema-metadata-2.0.xsd")))
     }
 
@@ -41,7 +52,7 @@ class MetadataSpec extends EEConnectorSpecification {
     @Feature("SP_METADATA_VALID_UNTIL")
     def "Metadata xml check"() {
         expect:
-        String metadataXml = Requests.getMetadataBody(flow)
+        String metadataXml = getMetadataBody(flow)
         XmlPath xmlPath = new XmlPath(metadataXml)
 
         String validUntil = xmlPath.getString("EntityDescriptor.@validUntil")
@@ -55,12 +66,29 @@ class MetadataSpec extends EEConnectorSpecification {
     }
 
     @Unroll
+    @Feature("EN_METADATA_VALID_UNTIL")
+    def "eIDAS Node metadata xml check"() {
+        expect:
+        String metadataXml = getEidasNodeMetadataBody(flow)
+        XmlPath xmlPath = new XmlPath(metadataXml)
+
+        String validUntil = xmlPath.getString("EntityDescriptor.@validUntil")
+        def timestamp = ZonedDateTime.parse(validUntil, DateTimeFormatter.ISO_DATE_TIME)
+        def tomorrow = ZonedDateTime.now(ZoneId.of("UTC")).plusDays(1L)
+        def duration = timestamp >> tomorrow
+        assertTrue(Math.abs(duration.seconds) < 15)
+
+        String nodeCountry = xmlPath.getString("EntityDescriptor.SPSSODescriptor.Extensions.NodeCountry")
+        assertThat(nodeCountry, is("EE"))
+    }
+
+    @Unroll
     @Feature("SP_METADATA_CONTACT_INFO")
     @Feature("SP_METADATA_EXTENSIONS_SPTYPE")
     @Feature("SP_METADATA_EXTENSIONS_REQUESTERID")
     def "Metadata contact info validation"() {
         expect:
-        String metadataXml = Requests.getMetadataBody(flow)
+        String metadataXml = getMetadataBody(flow)
         XmlPath xmlPath = new XmlPath(metadataXml)
         String spType = xmlPath.getString("EntityDescriptor.Extensions.SPType")
         String requesterIdFlag = xmlPath.getString("EntityDescriptor.Extensions.EntityAttributes.Attribute.AttributeValue");
@@ -80,7 +108,7 @@ class MetadataSpec extends EEConnectorSpecification {
     @Feature("SP_METADATA_SUPPORTED_ATTRIBUTES")
     def "Metadata default attributes and bindings"() {
         expect:
-        String metadataXml = Requests.getMetadataBody(flow)
+        String metadataXml = getMetadataBody(flow)
         XmlPath xmlPath = new XmlPath(metadataXml)
         String postBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[0]
         String redirectBinding = xmlPath.get("EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Binding")[1]
@@ -106,7 +134,7 @@ class MetadataSpec extends EEConnectorSpecification {
     @Feature("SECURITY")
     def "Verify metadata response header"() {
         expect:
-        ValidatableResponse response = Requests.getMetadataResponse(flow)
+        ValidatableResponse response = getMetadataResponse(flow)
         response.header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
     }
 
