@@ -229,7 +229,7 @@ class Steps {
         String token2 = response7.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
 
         Response response8 = Requests.proxyServiceRequest(flow, requestType, action5, token2)
-        String samlResponse = response8.body().htmlPath().get("**.find {it.@id == 'SAMLResponse'}.@value")
+        String samlResponse = response8.body().htmlPath().get("**.find {it.@id == 'ColleagueResponse_SAMLResponse'}.@value")
 
         Response response9 = Requests.colleagueResponse(flow, samlResponse)
         flow.token = response9.body().htmlPath().get("**.find {it.@id == 'token'}.@value")
