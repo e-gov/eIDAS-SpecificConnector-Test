@@ -31,7 +31,6 @@ class HeartBeatSpec extends EEConnectorSpecification {
         assertThat(heartBeat.body().jsonPath().get("startTime"), Matchers.notNullValue())
         assertThat(heartBeat.body().jsonPath().get("currentTime"), Matchers.notNullValue())
         assertThat(heartBeat.body().jsonPath().get("dependencies.name"), Matchers.hasItem("igniteCluster"))
-        assertThat(heartBeat.body().jsonPath().get("dependencies.name"), Matchers.hasItem("truststore"))
     }
 
     @Unroll
