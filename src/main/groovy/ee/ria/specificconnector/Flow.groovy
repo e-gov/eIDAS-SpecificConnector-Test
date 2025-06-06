@@ -3,6 +3,7 @@ package ee.ria.specificconnector
 import groovy.transform.Canonical
 import io.restassured.filter.cookie.CookieFilter
 import org.opensaml.security.credential.Credential
+
 import java.security.cert.X509Certificate
 
 @Canonical
@@ -60,6 +61,9 @@ class DomesticConnector {
     String host
     String port
     String protocol
+    String nodeHost
+    String nodePort
+    String nodeProtocol
     String metadataUrl
     String eidasNodeMetadataUrl
     String heartbeatUrl
@@ -68,12 +72,12 @@ class DomesticConnector {
     String eidasColleagueResponseUrl
     X509Certificate connectorSigningCertificate
 
-    @Lazy fullMetadataUrl = "${protocol}://${host}:${port}${metadataUrl}"
+    @Lazy fullMetadataUrl = "${nodeProtocol}://${nodeHost}:${nodePort}${metadataUrl}"
     @Lazy fullEidasNodeMetadataUrl = "${protocol}://${host}${eidasNodeMetadataUrl}"
     @Lazy metadataUrlWithoutPort = "${protocol}://${host}${metadataUrl}"
     @Lazy fullAuthenticationRequestUrl = "${protocol}://${host}:${port}${authenticationRequestUrl}"
     @Lazy fullAuthenticationRequestUrlWithoutPort = "${protocol}://${host}${authenticationRequestUrl}"
-    @Lazy fullheartbeatUrl = "${protocol}://${host}:${port}${heartbeatUrl}"
+    @Lazy fullheartbeatUrl = "${nodeProtocol}://${nodeHost}:${nodePort}${heartbeatUrl}"
     @Lazy fullEidasResponseUrl = "${protocol}://${host}:${port}${eidasResponseUrl}"
     @Lazy fullEidasColleagueResponseUrl = "${protocol}://${host}:${port}${eidasColleagueResponseUrl}"
 
@@ -81,6 +85,9 @@ class DomesticConnector {
         this.host = properties."ee-connector.host"
         this.port = properties."ee-connector.port"
         this.protocol = properties."ee-connector.protocol"
+        this.nodeHost = properties."ee-connector.node.host"
+        this.nodePort = properties."ee-connector.node.port"
+        this.nodeProtocol = properties."ee-connector.node.protocol"
         this.metadataUrl = properties."ee-connector.metadataUrl"
         this.eidasNodeMetadataUrl = properties."ee-connector.eidasNodeMetadataUrl"
         this.authenticationRequestUrl = properties."ee-connector.authenticationRequestUrl"

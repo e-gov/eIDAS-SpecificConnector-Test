@@ -37,6 +37,9 @@ Description of values:
 | ee-connector.protocol | https  | Service protocol. | 
 | ee-connector.host | eidas-specificconnector  | Service URL. |
 | ee-connector.port | 8443  | Service port. |
+| ee-connector.node.protocol | https  | Service single node protocol. | 
+| ee-connector.node.host | eidas-specificconnector  | Service single node URL. |
+| ee-connector.node.port | 8443  | Service single node port. |
 | ee-connector.heartbeatUrl | /SpecificConnector/heartbeat | Heartbeat endoint |
 | ee-connector.metadataUrl | /SpecificConnector/ConnectorResponderMetadata | Service metadata endpoint. |
 | ee-connector.authenticationRequestUrl | /SpecificConnector/ServiceProvider | Endpoint for authentication start. |
