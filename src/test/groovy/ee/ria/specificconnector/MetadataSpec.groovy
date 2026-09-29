@@ -82,6 +82,15 @@ class MetadataSpec extends EEConnectorSpecification {
         assertThat(nodeCountry, is("EE"))
     }
 
+    @Feature("EN_METADATA_SUPPORTED_NAME_ID_FORMATS")
+    def "eIDAS Node metadata publishes supported name identifier formats"() {
+        expect:
+        XmlPath xmlPath = new XmlPath(getEidasNodeMetadataBody(flow))
+
+        List<String> publishedFormats = xmlPath.getList("EntityDescriptor.SPSSODescriptor.NameIDFormat")
+        assertThat(publishedFormats, Matchers.containsInAnyOrder(SUPPORTED_NAME_ID_FORMATS.toArray()))
+    }
+
     @Unroll
     @Feature("SP_METADATA_CONTACT_INFO")
     @Feature("SP_METADATA_EXTENSIONS_SPTYPE")
