@@ -6,6 +6,7 @@ import io.restassured.path.xml.XmlPath
 import io.restassured.path.xml.config.XmlPathConfig
 import io.restassured.response.Response
 import org.apache.commons.validator.routines.InetAddressValidator
+import org.apache.http.HttpStatus
 import org.hamcrest.Matchers
 import org.opensaml.saml.saml2.core.Assertion
 import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration
@@ -18,8 +19,12 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 import static org.junit.Assert.*
+import static ee.ria.specificconnector.ResponseAssertions.assertErrorEnvelope
+import static ee.ria.specificconnector.ResponseAssertions.assertSecurityHeaders
 
 class AuthenticationResponseSpec extends EEConnectorSpecification {
+
+    static final String SP_RELAY_STATE = "SP-session-a1b2c3"
 
     Flow flow = new Flow(props)
 
@@ -36,13 +41,13 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     def "get authentication response get"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
-        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest, SP_RELAY_STATE)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
-        assertEquals("Correct RelayState value", flow.relayState, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
+        assertEquals("Correct RelayState value", SP_RELAY_STATE, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
     }
 
     @Unroll
@@ -51,13 +56,13 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     def "get authentication response, get request with non-notified level of assurance"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithLoa(flow, LOA_NON_NOTIFIED, AuthnContextComparisonTypeEnumeration.EXACT)
-        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest, SP_RELAY_STATE)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET, IDP_USERNAME, IDP_PASSWORD, LOA_NON_NOTIFIED)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", LOA_NON_NOTIFIED, SamlUtils.getLoaValue(samlAssertion))
-        assertEquals("Correct RelayState value", flow.relayState, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
+        assertEquals("Correct RelayState value", SP_RELAY_STATE, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
     }
 
     @Unroll
@@ -66,14 +71,14 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     def "get authentication response post"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
-        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest, SP_RELAY_STATE)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 200, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertionFromPost(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
         String relayState = authenticationResponse.body().htmlPath().get("**.find {it.@name == 'RelayState'}.@value")
-        assertEquals("Correct RelayState value", flow.relayState, relayState)
+        assertEquals("Correct RelayState value", SP_RELAY_STATE, relayState)
     }
 
     @Unroll
@@ -82,13 +87,13 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     def "get authentication response, post request with non-notified level of assurance"() {
         expect:
         String samlRequest = Steps.getAuthnRequestWithLoa(flow, LOA_NON_NOTIFIED, AuthnContextComparisonTypeEnumeration.EXACT)
-        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_POST, samlRequest, SP_RELAY_STATE)
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST, IDP_USERNAME, IDP_PASSWORD, LOA_NON_NOTIFIED)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
         assertEquals("Correct HTTP status code is returned", 302, authenticationResponse.statusCode())
         Assertion samlAssertion = SamlResponseUtils.extractSamlAssertion(authenticationResponse, flow.domesticSpService.encryptionCredential)
         assertEquals("Correct LOA is returned", LOA_NON_NOTIFIED, SamlUtils.getLoaValue(samlAssertion))
-        assertEquals("Correct RelayState value", flow.relayState, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
+        assertEquals("Correct RelayState value", SP_RELAY_STATE, SamlUtils.getRelayStateFromResponseHeader(authenticationResponse))
     }
 
     @Unroll
@@ -112,7 +117,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct Version attribute value", "2.0", xmlPath.getString("Response.@Version"))
         assertEquals("Correct Issuer", flow.domesticConnector.metadataUrlWithoutPort.toString(), xmlPath.getString("Response.Issuer"))
         assertEquals("Correct Issuer Format", "urn:oasis:names:tc:SAML:2.0:nameid-format:entity", xmlPath.getString("Response.Issuer.@Format"))
-        assertTrue(SamlUtils.isBase64EncodedString(xmlPath.getString("Response.Signature.SignedInfo.Reference.DigestValue").replaceAll("\r\n","")))
+        assertTrue(SamlUtils.isBase64EncodedString(xmlPath.getString("Response.Signature.SignedInfo.Reference.DigestValue").replaceAll("\r\n", "")))
         assertEquals("Correct StatusCode", "urn:oasis:names:tc:SAML:2.0:status:Success", xmlPath.getString("Response.Status.StatusCode.@Value"))
         assertTrue(xmlPath.getString("Response.EncryptedAssertion").length() > 0)
     }
@@ -138,7 +143,7 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         assertEquals("Correct Version attribute value", "2.0", xmlPath.getString("Response.@Version"))
         assertEquals("Correct Issuer", flow.domesticConnector.metadataUrlWithoutPort.toString(), xmlPath.getString("Response.Issuer"))
         assertEquals("Correct Issuer Format", "urn:oasis:names:tc:SAML:2.0:nameid-format:entity", xmlPath.getString("Response.Issuer.@Format"))
-        assertTrue(SamlUtils.isBase64EncodedString(xmlPath.getString("Response.Signature.SignedInfo.Reference.DigestValue").replaceAll("\r\n","")))
+        assertTrue(SamlUtils.isBase64EncodedString(xmlPath.getString("Response.Signature.SignedInfo.Reference.DigestValue").replaceAll("\r\n", "")))
         assertEquals("Correct StatusCode", "urn:oasis:names:tc:SAML:2.0:status:Success", xmlPath.getString("Response.Status.StatusCode.@Value"))
         assertTrue(xmlPath.getString("Response.EncryptedAssertion").length() > 0)
         String[] samlResponse = authenticationResponse.getHeader("location").toURL().getQuery().split("&")[0].split("=")
@@ -199,33 +204,51 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         String invalidToken = "specificCommunicationDefinitionConnectorResponse|b45e99b0-afef-44dc-b299-6ede26e5b61b|2020-11-02 10:12:15 522|WarR5kd669/NZiysHeRtog90PAZ3dAXeusmss8/Bl3s="
         String encodedToken = new String(Base64.getEncoder().encode(invalidToken.getBytes()))
         Response response = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.domesticConnector.fullEidasResponseUrl, encodedToken)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo("Token is invalid"))
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.eidasResponseUrl)
+        assertThat(response.body().jsonPath().getString("message"), Matchers.equalTo("Token is invalid"))
     }
 
     @Unroll
     @Feature("AUTHENTICATION_RESULT_ENDPOINT")
     @Feature("AUTHENTICATION_RESULT_LIGHTTOKEN_ACCEPTANCE")
-    @Feature("TECHNICAL_ERRORS")
-    def "request authentication response with other parameters"() {
-        expect:
-        String expiredEncodedToken = "c3BlY2lmaWNDb21tdW5pY2F0aW9uRGVmaW5pdGlvbkNvbm5lY3RvclJlc3BvbnNlfGM4NGE4NGUyLWRhNmQtNGFkMi1hNGIwLWEwNWMzMDA2MTJiYnwyMDIwLTExLTA1IDAwOjIwOjM3IDcwOXxKdGtoVFlJYXZjMy9sU3ZjZm8yM2xSOGxabUpzQ2xELzlwQVZQYzJ2c1FnPQ=="
-        Response response = Requests.getAuthorizationResponseFromEidasWithSomeUnusedParams(flow, method, flow.domesticConnector.fullEidasResponseUrl, expiredEncodedToken, paramName)
+    def "authentication response with unknown extra parameter is accepted: #method"() {
+        given:
+        String samlRequest = Steps.getAuthnRequest(flow)
+        Steps.startAuthenticationFlow(flow, method, samlRequest)
+        Steps.continueAuthenticationFlow(flow, method)
+        Map params = [
+                token       : flow.token,
+                unknownParam: "ignored"
+        ]
+
+        when:
+        Response response = Requests.getAuthorizationResponseFromEidas(flow, method, flow.nextEndpoint, params)
+
+        then:
         assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("incidentNumber"), Matchers.notNullValue())
-        assertThat(response.body().jsonPath().get("message").toString(), Matchers.equalTo(message))
+        Assertion samlAssertion = method == REQUEST_TYPE_GET ?
+                SamlResponseUtils.extractSamlAssertion(response, flow.domesticSpService.encryptionCredential) :
+                SamlResponseUtils.extractSamlAssertionFromPost(response, flow.domesticSpService.encryptionCredential)
+        assertEquals("Correct LOA is returned", "http://eidas.europa.eu/LoA/high", SamlUtils.getLoaValue(samlAssertion))
 
         where:
-        method            | paramName || statusCode || message
-        REQUEST_TYPE_POST | "old"     || 400        || "Token is invalid or has expired"
-        REQUEST_TYPE_GET  | "delay"   || 400        || "Token is invalid or has expired"
-        REQUEST_TYPE_GET  | "token"   || 400        || "Duplicate request parameter 'token'"
+        method            || statusCode
+        REQUEST_TYPE_GET  || 302
+        REQUEST_TYPE_POST || 200
     }
 
-    @Ignore ("AUT-749")
+    @Feature("AUTHENTICATION_RESULT_ENDPOINT")
+    @Feature("TECHNICAL_ERRORS")
+    def "duplicate token parameter is rejected"() {
+        expect:
+        Map params = [token: ["dG9rZW4=", "dG9rZW4="]]
+        Response response = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET,
+                flow.domesticConnector.fullEidasResponseUrl, params)
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.eidasResponseUrl)
+        assertThat(response.body().jsonPath().getString("message"), Matchers.equalTo("Duplicate request parameter 'token'"))
+    }
+
+    @Ignore("AUT-749")
     @Unroll
     @Feature("SAML_RESPONSE_SIGNING")
     def "saml response signed with correct key"() {
@@ -243,10 +266,10 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         String algorithm = xmlPath.getString("Response.Signature.SignedInfo.SignatureMethod.@Algorithm")
         assertTrue("Recommended assertion signing Algorithm is used",
                 Arrays.asList("http://www.w3.org/2007/05/xmldsig-more#sha256-rsa-MGF1", "http://www.w3.org/2007/05/xmldsig-more#sha384-rsa-MGF1", "http://www.w3.org/2007/05/xmldsig-more#sha512-rsa-MGF1",
-                "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512").contains(algorithm))
+                        "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha384", "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512").contains(algorithm))
     }
 
-    @Ignore ("AUT-749")
+    @Ignore("AUT-749")
     @Unroll
     @Feature("SAML_ASSERTION_SIGNING")
     def "saml response assertion signed with correct key"() {
@@ -342,6 +365,22 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
     }
 
     @Unroll
+    @Feature("AUTHENTICATION_RESULT_LIGHTTOKEN_ACCEPTANCE")
+    def "authentication result token cannot be used twice"() {
+        expect:
+        String samlRequest = Steps.getAuthnRequest(flow)
+        Steps.startAuthenticationFlow(flow, REQUEST_TYPE_GET, samlRequest)
+        Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_GET)
+        Response firstUse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertThat("First use of the token succeeds", firstUse.statusCode(), Matchers.equalTo(HttpStatus.SC_MOVED_TEMPORARILY))
+
+        Response replay = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_GET, flow.nextEndpoint, flow.token)
+        assertErrorEnvelope(replay, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.eidasResponseUrl)
+        assertThat("Correct message", replay.body().jsonPath().getString("message"),
+                Matchers.equalTo("Token is invalid or has expired"))
+    }
+
+    @Unroll
     @Feature("AUTHENTICATION_RESULT_ENDPOINT")
     @Feature("SECURITY")
     def "Verify authentication result header"() {
@@ -351,5 +390,6 @@ class AuthenticationResponseSpec extends EEConnectorSpecification {
         Steps.continueAuthenticationFlow(flow, REQUEST_TYPE_POST)
         Response authenticationResponse = Requests.getAuthorizationResponseFromEidas(flow, REQUEST_TYPE_POST, flow.nextEndpoint, flow.token)
         authenticationResponse.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
+        assertSecurityHeaders(authenticationResponse)
     }
 }

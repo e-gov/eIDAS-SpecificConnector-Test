@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 
 import static ee.ria.specificconnector.MetadataUtils.*
 import static ee.ria.specificconnector.Requests.*
+import static ee.ria.specificconnector.ResponseAssertions.assertSecurityHeaders
 import static org.hamcrest.Matchers.containsString
 import static org.hamcrest.Matchers.is
 import static org.junit.Assert.assertEquals
@@ -91,6 +92,12 @@ class MetadataSpec extends EEConnectorSpecification {
         assertThat(publishedFormats, Matchers.containsInAnyOrder(SUPPORTED_NAME_ID_FORMATS.toArray()))
     }
 
+    @Feature("EN_METADATA_EXTENSIONS_SPTYPE")
+    def "eIDAS Node metadata does not publish SPType"() {
+        expect:
+        assertThat(getEidasNodeMetadataBody(flow), Matchers.not(containsString("SPType")))
+    }
+
     @Unroll
     @Feature("SP_METADATA_CONTACT_INFO")
     @Feature("SP_METADATA_EXTENSIONS_SPTYPE")
@@ -139,12 +146,22 @@ class MetadataSpec extends EEConnectorSpecification {
     }
 
     @Unroll
+    @Feature("SP_METADATA_RESPONSE")
+    def "Metadata is served as XML with an explicit UTF-8 charset"() {
+        expect:
+        ValidatableResponse response = getMetadataResponse(flow)
+        response.contentType(Matchers.startsWith("application/xml"))
+        response.header("Content-Type", Matchers.containsStringIgnoringCase("charset=UTF-8"))
+    }
+
+    @Unroll
     @Feature("METADATA_REQUEST")
     @Feature("SECURITY")
     def "Verify metadata response header"() {
         expect:
         ValidatableResponse response = getMetadataResponse(flow)
         response.header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
+        assertSecurityHeaders(response.extract().response())
     }
 
 }

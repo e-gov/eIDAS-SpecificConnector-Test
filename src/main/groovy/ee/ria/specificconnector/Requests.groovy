@@ -2,7 +2,6 @@ package ee.ria.specificconnector
 
 import io.qameta.allure.Step
 import io.qameta.allure.restassured.AllureRestAssured
-import io.restassured.RestAssured
 import io.restassured.response.Response
 import io.restassured.response.ValidatableResponse
 
@@ -153,6 +152,20 @@ class Requests {
         return response
     }
 
+    @Step("Open authentication page with a raw, unencoded path suffix")
+    static Response startAuthenticationWithRawPath(Flow flow, String requestType, String rawPathSuffix) {
+        return given()
+                .filter(flow.cookieFilter)
+                .filter(new AllureRestAssured())
+                .relaxedHTTPSValidation()
+                .when()
+                .redirects().follow(false)
+                .urlEncodingEnabled(false)
+                .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl + rawPathSuffix)
+                .then()
+                .extract().response()
+    }
+
     @Step("Follow redirect")
     static Response followRedirect(Flow flow, String location) {
         return given()
@@ -266,30 +279,17 @@ class Requests {
         return response
     }
 
-    @Step("Eidas authorization response")
     static Response getAuthorizationResponseFromEidas(Flow flow, String requestType, String actionUrl, String lightToken) {
-        Response response =
-                given()
-                        .filter(flow.cookieFilter)
-                        .filter(new AllureRestAssured())
-                        .param("token", lightToken)
-                        .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
-                        .when()
-                        .redirects().follow(false)
-                        .request(requestType, actionUrl)
-                        .then()
-                        .extract().response()
-        return response
+        getAuthorizationResponseFromEidas(flow, requestType, actionUrl, [token: lightToken])
     }
 
-    @Step("Eidas authorization response with additional parameters")
-    static Response getAuthorizationResponseFromEidasWithSomeUnusedParams(Flow flow, String requestType, String actionUrl, String lightToken, String paramName) {
+    @Step("Eidas authorization response")
+    static Response getAuthorizationResponseFromEidas(Flow flow, String requestType, String actionUrl, Map params) {
         Response response =
                 given()
                         .filter(flow.cookieFilter)
                         .filter(new AllureRestAssured())
-                        .param("token", lightToken)
-                        .param(paramName, "c3BlY2lmaWNDb21tdW5pY2F0aW9uRGVmaW5pdGlvbkNvbm5lY3RvclJlc3BvbnNlfGM4NGE4NGUyLWRhNmQtNGFkMi1hNGIwLWEwNWMzMDA2MTJiYnwyMDIwLTExLTA1IDAwOjIwOjM3IDcwOXxKdGtoVFlJYXZjMy9sU3ZjZm8yM2xSOGxabUpzQ2xELzlwQVZQYzJ2c1FnPQ==")
+                        .params(params)
                         .config(config().encoderConfig(encoderConfig().defaultContentCharset("UTF-8"))).relaxedHTTPSValidation()
                         .when()
                         .redirects().follow(false)
@@ -329,4 +329,17 @@ class Requests {
         return response
     }
 
+    @Step("{method} {url}")
+    static Response request(Flow flow, String method, String url, Map<String, String> headers = [:]) {
+        return given()
+                .filter(flow.cookieFilter)
+                .filter(new AllureRestAssured())
+                .headers(headers)
+                .relaxedHTTPSValidation()
+                .when()
+                .redirects().follow(false)
+                .request(method, url)
+                .then()
+                .extract().response()
+    }
 }
