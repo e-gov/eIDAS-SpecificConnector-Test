@@ -1,12 +1,13 @@
 package ee.ria.specificconnector
 
 import io.qameta.allure.Feature
+import static ee.ria.specificconnector.ResponseAssertions.assertSecurityHeaders
 import io.restassured.filter.cookie.CookieFilter
 import io.restassured.response.Response
 import org.hamcrest.Matchers
 import spock.lang.Unroll
 
-import static org.junit.Assert.assertThat
+import static org.hamcrest.MatcherAssert.assertThat
 
 class HeartBeatSpec extends EEConnectorSpecification {
     Flow flow = new Flow(props)
@@ -30,7 +31,12 @@ class HeartBeatSpec extends EEConnectorSpecification {
         assertThat(heartBeat.body().jsonPath().get("buildTime"), Matchers.notNullValue())
         assertThat(heartBeat.body().jsonPath().get("startTime"), Matchers.notNullValue())
         assertThat(heartBeat.body().jsonPath().get("currentTime"), Matchers.notNullValue())
-        assertThat(heartBeat.body().jsonPath().get("dependencies.name"), Matchers.hasItem("igniteCluster"))
+        List<String> dependencyNames = heartBeat.body().jsonPath().getList("dependencies.name")
+        List<String> dependencyStatuses = heartBeat.body().jsonPath().getList("dependencies.status")
+
+        assertThat(dependencyNames, Matchers.hasItems("igniteCluster", "connectorMetadata", "responderMetadata"))
+        assertThat(dependencyNames, Matchers.hasItem(Matchers.matchesPattern("sp-.+-metadata")))
+        assertThat(dependencyStatuses, Matchers.everyItem(Matchers.equalTo("UP")))
     }
 
     @Unroll
@@ -40,6 +46,7 @@ class HeartBeatSpec extends EEConnectorSpecification {
         expect:
         Response heartBeat = Requests.getHeartbeat(flow)
         heartBeat.then().header("Content-Security-Policy", Matchers.is(defaultContentSecurityPolicy))
+        assertSecurityHeaders(heartBeat)
     }
 
 }

@@ -2,7 +2,6 @@ package ee.ria.specificconnector
 
 import io.qameta.allure.Step
 import io.qameta.allure.restassured.AllureRestAssured
-import io.restassured.RestAssured
 import io.restassured.response.Response
 import io.restassured.response.ValidatableResponse
 
@@ -151,6 +150,20 @@ class Requests {
                         .then()
                         .extract().response()
         return response
+    }
+
+    @Step("Open authentication page with a raw, unencoded path suffix")
+    static Response startAuthenticationWithRawPath(Flow flow, String requestType, String rawPathSuffix) {
+        return given()
+                .filter(flow.cookieFilter)
+                .filter(new AllureRestAssured())
+                .relaxedHTTPSValidation()
+                .when()
+                .redirects().follow(false)
+                .urlEncodingEnabled(false)
+                .request(requestType, flow.domesticConnector.fullAuthenticationRequestUrl + rawPathSuffix)
+                .then()
+                .extract().response()
     }
 
     @Step("Follow redirect")
@@ -329,4 +342,17 @@ class Requests {
         return response
     }
 
+    @Step("{method} {url}")
+    static Response request(Flow flow, String method, String url, Map<String, String> headers = [:]) {
+        return given()
+                .filter(flow.cookieFilter)
+                .filter(new AllureRestAssured())
+                .headers(headers)
+                .relaxedHTTPSValidation()
+                .when()
+                .redirects().follow(false)
+                .request(method, url)
+                .then()
+                .extract().response()
+    }
 }

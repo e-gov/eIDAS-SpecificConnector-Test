@@ -173,9 +173,11 @@ class Steps {
     }
 
     @Step("Start autentication on domestic country")
-    static void startAuthenticationFlow(Flow flow, String requestType, String samlRequest) {
-        Response response = Requests.startAuthentication(flow, requestType, samlRequest)
-        if (requestType.equals(REQUEST_TYPE_GET)) {
+    static void startAuthenticationFlow(Flow flow, String requestType, String samlRequest, String relayState = null) {
+        Response response = relayState == null ?
+                Requests.startAuthentication(flow, requestType, samlRequest) :
+                Requests.startAuthentication(flow, requestType, samlRequest, "RelayState", relayState)
+        if (requestType == REQUEST_TYPE_GET) {
             Response getResponse = followRedirect(flow, response)
             flow.nextEndpoint = getResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}.@action")
             flow.requestMessage = getResponse.body().htmlPath().get("**.find {it.@name == 'redirectForm'}input[0].@value")

@@ -4,9 +4,11 @@ import io.qameta.allure.Feature
 import io.restassured.filter.cookie.CookieFilter
 import io.restassured.path.xml.XmlPath
 import io.restassured.response.Response
+import org.apache.http.HttpStatus
 import org.opensaml.saml.saml2.core.AuthnContextComparisonTypeEnumeration
 
 import static org.hamcrest.CoreMatchers.*
+import static org.hamcrest.Matchers.containsInAnyOrder
 import org.opensaml.saml.saml2.core.Assertion
 import spock.lang.Unroll
 
@@ -15,9 +17,14 @@ import static org.junit.Assert.assertThat
 import org.apache.commons.lang.RandomStringUtils
 import java.nio.charset.StandardCharsets
 import static org.junit.Assert.assertTrue
+import static ee.ria.specificconnector.ResponseAssertions.assertErrorEnvelope
+import static ee.ria.specificconnector.ResponseAssertions.assertSecurityHeaders
 
 
 class AuthenticationSpec extends EEConnectorSpecification {
+
+    // one char over the RelayState limit
+    static final String OVER_LENGTH_RELAY_STATE = "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1"
 
     Flow flow = new Flow(props)
 
@@ -152,10 +159,7 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String comparison = xmlPath.getString("AuthnRequest.RequestedAuthnContext.@Comparison")
         String authnContextClassRef = xmlPath.getString("AuthnRequest.RequestedAuthnContext.AuthnContextClassRef")
         String serviceProviderType = xmlPath.getString("AuthnRequest.Extensions.SPType")
-        String personIdentifier = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[0].@FriendlyName")
-        String familyName = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[1].@FriendlyName")
-        String firstName = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[2].@FriendlyName")
-        String dateOfBirth = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute[3].@FriendlyName")
+        List<String> requestedAttributes = xmlPath.getList("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute.@FriendlyName")
         String isRequired = xmlPath.getString("AuthnRequest.Extensions.RequestedAttributes.RequestedAttribute.@isRequired")
         String requesterID = xmlPath.getString("AuthnRequest.Scoping.RequesterID")
 
@@ -170,10 +174,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         assertThat("Signature is present", signatureValue, notNullValue())
         assertThat("Certificate is present", certificate, notNullValue())
         assertEquals("Correct SPType is returned", spType, serviceProviderType)
-        assertEquals("Correct RequestedAttribute is returned", "PersonIdentifier", personIdentifier)
-        assertEquals("Correct RequestedAttribute is returned", "FamilyName", familyName)
-        assertEquals("Correct RequestedAttribute is returned", "FirstName", firstName)
-        assertEquals("Correct RequestedAttribute is returned", "DateOfBirth", dateOfBirth)
+        assertThat("Correct RequestedAttributes are returned", requestedAttributes,
+                containsInAnyOrder("PersonIdentifier", "FamilyName", "FirstName", "DateOfBirth"))
         assertThat("RequesterAttributes are required", isRequired, not(containsString(("false"))))
         assertEquals("Correct AllowCreate value is returned", "true", allowCreate)
         assertEquals("Correct RequestedAuthnContext comparison value is returned", "minimum", comparison)
@@ -191,21 +193,19 @@ class AuthenticationSpec extends EEConnectorSpecification {
     def "request authentication with multiple instances"() {
         expect:
         Response response = Requests.startAuthenticationWithDuplicateParams(flow, REQUEST_TYPE_POST, "1234567", additionalParam, "78901234")
-        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, statusCode, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo(message))
 
         where:
-        additionalParam || statusCode || message
-        "SAMLRequest"   || 400        || "Duplicate request parameter 'SAMLRequest'"
-        "country"       || 400        || "Duplicate request parameter 'country'"
-        "RelayState"    || 400        || "Duplicate request parameter 'RelayState'"
+        additionalParam || statusCode                | message
+        "SAMLRequest"   || HttpStatus.SC_BAD_REQUEST | "Duplicate request parameter 'SAMLRequest'"
+        "country"       || HttpStatus.SC_BAD_REQUEST | "Duplicate request parameter 'country'"
+        "RelayState"    || HttpStatus.SC_BAD_REQUEST | "Duplicate request parameter 'RelayState'"
     }
 
     @Unroll
     @Feature("AUTHENTICATION_ENDPOINT")
-    def "request authentication with invalid parameters. Expected error message: [#message]"() {
+    def "request authentication with invalid parameters. Expected error message: [#messageMatcher]"() {
         expect:
         String samlRequest = Steps.getAuthnRequest(flow)
         def map = [:]
@@ -215,20 +215,19 @@ class AuthenticationSpec extends EEConnectorSpecification {
         def map3 = SamlUtils.setUrlParameter(map, param3, param3Value)
 
         Response response = Requests.startAuthenticationWithParameters(flow, REQUEST_TYPE_POST, map)
-        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message"), startsWith(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, statusCode, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), messageMatcher)
 
         where:
-        param1        | param2        | param2Value | param3       | param3Value                                                                         || statusCode || message
-        _             | _             | _           | _            | _                                                                                   || 400        || "Required request parameter 'SAMLRequest' for method parameter type String is not present"
-        "SAMLRequest" | _             | _           | _            | _                                                                                   || 400        || "Required request parameter 'country' for method parameter type String is not present"
-        "SAMLRequest" | "country"     | _           | _            | _                                                                                   || 400        || "post.country: must match "
-        "SAMLRequest" | "country"     | "CAA"       | _            | _                                                                                   || 400        || "post.country: must match "
-        "SAMLRequest" | "country"     | "CA"        | "RelayState" | "1XyyAocKwZp8Zp8qd9lhVKiJPF1AywyfpXTLqYGLFE73CKcEgSKOrfVq9UMfX9HAfWwBJMI9O7Bm22BZ1" || 400        || "post.RelayState: must match"
-        "SAMLRequest" | "country"     | "CA"        | "RelayState" | "\b\f"                                                                              || 400        || "post.RelayState: must match"
-        _             | "SAMLRequest" | "Ää"        | "country"    | "CA"                                                                                || 400        || "post.SAMLRequest: must match"
+        // startsWith only where the message ends with the production @Pattern regex
+        param1        | param2        | param2Value | param3       | param3Value             || statusCode                | messageMatcher
+        _             | _             | _           | _            | _                       || HttpStatus.SC_BAD_REQUEST | equalTo("Required request parameter 'SAMLRequest' for method parameter type String is not present")
+        "SAMLRequest" | _             | _           | _            | _                       || HttpStatus.SC_BAD_REQUEST | equalTo("Required request parameter 'country' for method parameter type String is not present")
+        "SAMLRequest" | "country"     | _           | _            | _                       || HttpStatus.SC_BAD_REQUEST | startsWith("post.country: must match ")
+        "SAMLRequest" | "country"     | "CAA"       | _            | _                       || HttpStatus.SC_BAD_REQUEST | startsWith("post.country: must match ")
+        "SAMLRequest" | "country"     | "CA"        | "RelayState" | OVER_LENGTH_RELAY_STATE || HttpStatus.SC_BAD_REQUEST | startsWith("post.RelayState: must match")
+        "SAMLRequest" | "country"     | "CA"        | "RelayState" | "\b\f"                  || HttpStatus.SC_BAD_REQUEST | startsWith("post.RelayState: must match")
+        _             | "SAMLRequest" | "Ää"        | "country"    | "CA"                    || HttpStatus.SC_BAD_REQUEST | startsWith("post.SAMLRequest: must match")
     }
 
     @Unroll
@@ -237,10 +236,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequestWithInvalidIssuer(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - issuer not allowed"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo("SAML request is invalid - issuer not allowed"))
     }
 
     @Unroll
@@ -249,16 +246,14 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequestWithLoa(flow, loa, AuthnContextComparisonTypeEnumeration.MINIMUM)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, statusCode, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo(message))
 
         where:
-        loa              | statusCode | message
-        ""               | 500        | "Something went wrong internally. Please consult server logs for further details."
-        "LOA_INVALID"    | 400        | "SAML request is invalid - invalid Level of Assurance"
-        LOA_NON_NOTIFIED | 400        | "SAML request is invalid - invalid Level of Assurance"
+        loa              | statusCode                          | message
+        ""               | HttpStatus.SC_INTERNAL_SERVER_ERROR | "Something went wrong internally. Please consult server logs for further details."
+        "LOA_INVALID"    | HttpStatus.SC_BAD_REQUEST           | "SAML request is invalid - invalid Level of Assurance"
+        LOA_NON_NOTIFIED | HttpStatus.SC_BAD_REQUEST           | "SAML request is invalid - invalid Level of Assurance"
     }
 
     @Unroll
@@ -267,15 +262,13 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequestWithLoa(flow, loa, AuthnContextComparisonTypeEnumeration.EXACT)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, statusCode, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo(message))
 
         where:
-        loa           | statusCode | message
-        ""            | 500        | "Something went wrong internally. Please consult server logs for further details."
-        "LOA_INVALID" | 500        | "Something went wrong internally. Please consult server logs for further details."
+        loa           | statusCode                          | message
+        ""            | HttpStatus.SC_INTERNAL_SERVER_ERROR | "Something went wrong internally. Please consult server logs for further details."
+        "LOA_INVALID" | HttpStatus.SC_INTERNAL_SERVER_ERROR | "Something went wrong internally. Please consult server logs for further details."
     }
 
     @Unroll
@@ -284,10 +277,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequestWithoutExtensions(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - no requested attributes"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo("SAML request is invalid - no requested attributes"))
     }
 
     @Unroll
@@ -296,10 +287,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequestWithUnsupportedAttribute(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - unsupported requested attributes"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo("SAML request is invalid - unsupported requested attributes"))
     }
 
     @Unroll
@@ -308,17 +297,30 @@ class AuthenticationSpec extends EEConnectorSpecification {
         expect:
         String samlRequest = Steps.getAuthnRequestWithInvalidCredential(flow, credential)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", statusCode, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message").toString(), equalTo("SAML request is invalid - invalid signature"))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, statusCode, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo("SAML request is invalid - invalid signature"))
 
         where:
         credential                           || statusCode
-        metadataCredential                   || 400
-        expiredCredential                    || 400
-        unsupportedCredential                || 400
-        unsupportedByConfigurationCredential || 400
+        metadataCredential                   || HttpStatus.SC_BAD_REQUEST
+        expiredCredential                    || HttpStatus.SC_BAD_REQUEST
+        unsupportedCredential                || HttpStatus.SC_BAD_REQUEST
+        unsupportedByConfigurationCredential || HttpStatus.SC_BAD_REQUEST
+    }
+
+    @Unroll
+    @Feature("AUTHENTICATION_REQUEST_VALIDATION")
+    @Feature("SECURITY")
+    def "request authentication is rejected by #rejectedBy when the URI contains #description"() {
+        expect:
+        Response response = Requests.startAuthenticationWithRawPath(flow, REQUEST_TYPE_GET, rawPathSuffix)
+
+        assertThat("Correct HTTP status code is returned", response.statusCode(), equalTo(HttpStatus.SC_BAD_REQUEST))
+
+        where:
+        rejectedBy           | description        | rawPathSuffix
+        "Tomcat"             | "an encoded slash" | "%2f"
+        "StrictHttpFirewall" | "a double slash"   | "//"
     }
 
     @Unroll
@@ -328,10 +330,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, attributeName, attributeValue)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message"), startsWith(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo(message))
 
         where:
         attributeName  | attributeValue                                     || message
@@ -361,10 +361,8 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String samlRequest = Steps.getAuthnRequestWithMissingAttribute(flow, attributeName, attributeValue)
 
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_POST, samlRequest)
-        assertEquals("Correct HTTP status code is returned", 400, response.statusCode())
-        assertEquals("Correct content type", "application/json", response.getContentType())
-        assertThat(response.body().jsonPath().get("message"), startsWith(message))
-        assertThat(response.body().jsonPath().get("incidentNumber"), notNullValue())
+        assertErrorEnvelope(response, HttpStatus.SC_BAD_REQUEST, flow.domesticConnector.authenticationRequestUrl)
+        assertThat(response.body().jsonPath().getString("message"), equalTo(message))
 
         where:
         attributeName  | attributeValue                                     || message
@@ -456,5 +454,6 @@ class AuthenticationSpec extends EEConnectorSpecification {
         String samlRequest = Steps.getAuthnRequest(flow)
         Response response = Requests.startAuthentication(flow, REQUEST_TYPE_GET, samlRequest)
         response.then().header("Content-Security-Policy", is(defaultContentSecurityPolicy))
+        assertSecurityHeaders(response)
     }
 }
