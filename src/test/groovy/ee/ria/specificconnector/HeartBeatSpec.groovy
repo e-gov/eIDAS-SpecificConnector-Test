@@ -36,6 +36,9 @@ class HeartBeatSpec extends EEConnectorSpecification {
 
         assertThat(dependencyNames, Matchers.hasItems("igniteCluster", "connectorMetadata", "responderMetadata"))
         assertThat(dependencyNames, Matchers.hasItem(Matchers.matchesPattern("sp-.+-metadata")))
+        assertThat(dependencyNames, Matchers.everyItem(Matchers.anyOf(
+                Matchers.oneOf("igniteCluster", "connectorMetadata", "responderMetadata"),
+                Matchers.matchesPattern("sp-.+-metadata"))))
         assertThat(dependencyStatuses, Matchers.everyItem(Matchers.equalTo("UP")))
     }
 
